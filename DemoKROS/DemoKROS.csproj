@@ -21,10 +21,6 @@
         <PackageReference Include="TeaPie" Version="1.6.1" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Migrations\" />
-    </ItemGroup>
-
     <PropertyGroup>
         <CETCompat>false</CETCompat>
     </PropertyGroup>

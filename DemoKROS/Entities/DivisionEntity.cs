@@ -7,6 +7,7 @@ namespace DemoKROS.Entities;
 [Table("Divisions")]
 public class DivisionEntity : OrganizationNodeEntity
 {
+    [ForeignKey(nameof(CompanyEntity))]
     public int CompanyId { get; set; }
 
     public CompanyEntity CompanyEntity { get; set; } = null!;

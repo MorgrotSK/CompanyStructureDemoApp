@@ -6,7 +6,7 @@ Content-Type: application/json
 
 {
   "name": "TeaPie Project Test Company",
-  "code": "PROJCOMP",
+  "code": "PROJCOMP_{{Timestamp}}",
   "leaderId": null
 }
 
@@ -32,7 +32,7 @@ Content-Type: application/json
 
 {
   "name": "TeaPie Project Parent Division",
-  "code": "PRJDVI"
+  "code": "PRJDVI_{{Timestamp}}"
 }
 
 ###
@@ -42,7 +42,7 @@ POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
 Content-Type: application/json
 
 {
-  "code": "MISSNAME"
+  "code": "MISSNAME_{{Timestamp}}"
 }
 
 --- TEST
@@ -59,6 +59,7 @@ tp.Test("Setup company, employee and division should be created.", async () =>
     tp.SetVariable("ProjectTestCompanyId", (int)companyBody.id);
     tp.SetVariable("ProjectTestEmployeeId", (int)employeeBody.id);
     tp.SetVariable("ProjectTestDivisionId", (int)divisionBody.id);
+    tp.SetVariable("ProjectCode", "TEAPROJ_" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 });
 
 tp.Test("Create project without name should fail.", () =>
@@ -75,7 +76,7 @@ Content-Type: application/json
 
 {
   "name": "TeaPie Test Project",
-  "code": "TEAPROJ"
+  "code": "{{ProjectCode}}"
 }
 
 --- TEST
@@ -89,7 +90,7 @@ tp.Test("Created project should have expected values.", async () =>
     dynamic body = await tp.Response.GetBodyAsExpandoAsync();
 
     Equal("TeaPie Test Project", (string)body.name);
-    Equal("TEAPROJ", (string)body.code);
+    Equal(tp.GetVariable<string>("ProjectCode"), (string)body.code);
     True((int)body.id > 0);
 
     tp.SetVariable("ProjectId", (int)body.id);
@@ -104,7 +105,7 @@ Content-Type: application/json
 
 {
   "name": "Duplicate Project",
-  "code": "TEAPROJ"
+  "code": "{{ProjectCode}}"
 }
 
 --- TEST
@@ -132,7 +133,7 @@ tp.Test("Fetched project should match created values.", async () =>
 
     Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
     Equal("TeaPie Test Project", (string)body.name);
-    Equal("TEAPROJ", (string)body.code);
+    Equal(tp.GetVariable<string>("ProjectCode"), (string)body.code);
 });
 --- END
 
@@ -194,7 +195,7 @@ tp.Test("Updated project should reflect changes.", async () =>
 
     Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
     Equal("TeaPie Updated Project", (string)body.name);
-    Equal("TEAPROJ", (string)body.code);
+    Equal(tp.GetVariable<string>("ProjectCode"), (string)body.code);
 });
 --- END
 
@@ -216,7 +217,7 @@ tp.Test("Persisted project should have updated values.", async () =>
 
     Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
     Equal("TeaPie Updated Project", (string)body.name);
-    Equal("TEAPROJ", (string)body.code);
+    Equal(tp.GetVariable<string>("ProjectCode"), (string)body.code);
 });
 --- END
 
@@ -263,7 +264,6 @@ DELETE {{ApiBaseUrl}}/api/companies/{{ProjectTestCompanyId}}
 tp.Test("Cleanup delete project should return 204 or 404.", () =>
 {
     int statusCode = tp.Responses["DeleteProject"].StatusCode();
-
     True(statusCode == 204 || statusCode == 404);
 });
 
@@ -275,21 +275,18 @@ tp.Test("Deleted project should return 404.", () =>
 tp.Test("Cleanup division should return 204 or 404.", () =>
 {
     int statusCode = tp.Responses["CleanupDivision"].StatusCode();
-
     True(statusCode == 204 || statusCode == 404);
 });
 
 tp.Test("Cleanup employee should return 204 or 404.", () =>
 {
     int statusCode = tp.Responses["CleanupEmployee"].StatusCode();
-
     True(statusCode == 204 || statusCode == 404);
 });
 
 tp.Test("Cleanup company should return 204 or 404.", () =>
 {
     int statusCode = tp.Responses["CleanupCompany"].StatusCode();
-
     True(statusCode == 204 || statusCode == 404);
 });
 --- END

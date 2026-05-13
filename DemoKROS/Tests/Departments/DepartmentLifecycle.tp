@@ -58,13 +58,36 @@ Content-Type: application/json
 
 --- TEST
 tp.SetVariable("DepartmentTestSuffix", Random.Shared.Next(10, 99).ToString());
-
 tp.Test("Setup company, employee, division and project should be created.", async () =>
 {
-    Equal(201, tp.Responses["SetupCompany"].StatusCode());
-    Equal(201, tp.Responses["SetupEmployee"].StatusCode());
-    Equal(201, tp.Responses["SetupDivision"].StatusCode());
-    Equal(201, tp.Responses["SetupProject"].StatusCode());
+    int companyStatus = tp.Responses["SetupCompany"].StatusCode();
+    int employeeStatus = tp.Responses["SetupEmployee"].StatusCode();
+    int divisionStatus = tp.Responses["SetupDivision"].StatusCode();
+    int projectStatus = tp.Responses["SetupProject"].StatusCode();
+
+    if (companyStatus != 201)
+    {
+        string body = await tp.Responses["SetupCompany"].Content.ReadAsStringAsync();
+        True(false, $"SetupCompany failed. Status: {companyStatus}. Body: {body}");
+    }
+
+    if (employeeStatus != 201)
+    {
+        string body = await tp.Responses["SetupEmployee"].Content.ReadAsStringAsync();
+        True(false, $"SetupEmployee failed. Status: {employeeStatus}. Body: {body}");
+    }
+
+    if (divisionStatus != 201)
+    {
+        string body = await tp.Responses["SetupDivision"].Content.ReadAsStringAsync();
+        True(false, $"SetupDivision failed. Status: {divisionStatus}. Body: {body}");
+    }
+
+    if (projectStatus != 201)
+    {
+        string body = await tp.Responses["SetupProject"].Content.ReadAsStringAsync();
+        True(false, $"SetupProject failed. Status: {projectStatus}. Body: {body}");
+    }
 
     dynamic companyBody = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
     dynamic employeeBody = await tp.Responses["SetupEmployee"].GetBodyAsExpandoAsync();
@@ -76,7 +99,6 @@ tp.Test("Setup company, employee, division and project should be created.", asyn
     tp.SetVariable("DepartmentTestDivisionId", (int)divisionBody.id);
     tp.SetVariable("DepartmentTestProjectId", (int)projectBody.id);
 });
-
 tp.Test("Create department without name should fail.", () =>
 {
     Equal(400, tp.Responses["CreateDepartmentMissingName"].StatusCode());
