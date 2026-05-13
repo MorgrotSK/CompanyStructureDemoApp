@@ -1,0 +1,181 @@
+﻿--- TESTCASE Create Company Missing Name
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "code": "MISSNAME",
+  "leaderId": null
+}
+
+--- TEST
+tp.Test("Create company without name should fail.", () =>
+{
+    Equal(400, tp.Response.StatusCode());
+});
+--- END
+
+
+--- TESTCASE Create Company With Too Long Code
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "Invalid Company",
+  "code": "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234",
+  "leaderId": null
+}
+
+--- TEST
+tp.Test("Create company with too long code should fail.", () =>
+{
+    Equal(400, tp.Response.StatusCode());
+});
+--- END
+
+
+--- TESTCASE Create Company
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Test Company",
+  "code": "TEACOMP",
+  "leaderId": null
+}
+
+--- TEST
+tp.Test("Create company should return 201.", () =>
+{
+    Equal(201, tp.Response.StatusCode());
+});
+
+tp.Test("Created company should have expected values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal("TeaPie Test Company", (string)body.name);
+    Equal("TEACOMP", (string)body.code);
+    Null(body.leaderId);
+    True((int)body.id > 0);
+
+    tp.SetVariable("CompanyId", (int)body.id);
+});
+--- END
+
+
+--- TESTCASE Create Company Duplicate Code
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "Duplicate Company",
+  "code": "TEACOMP",
+  "leaderId": null
+}
+
+--- TEST
+tp.Test("Create company with duplicate code should fail.", () =>
+{
+    True(tp.Response.StatusCode() == 400 || tp.Response.StatusCode() == 409);
+});
+--- END
+
+
+--- TESTCASE Get Created Company By Id
+--- HTTP
+GET {{ApiBaseUrl}}/api/companies/{{CompanyId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Get company should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Fetched company should match created values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("CompanyId"), (int)body.id);
+    Equal("TeaPie Test Company", (string)body.name);
+    Equal("TEACOMP", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Update Company
+--- HTTP
+PATCH {{ApiBaseUrl}}/api/companies/{{CompanyId}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Company"
+}
+
+--- TEST
+tp.Test("Update company should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Updated company should have updated name and same code.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("CompanyId"), (int)body.id);
+    Equal("TeaPie Updated Company", (string)body.name);
+    Equal("TEACOMP", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Verify Updated Company
+--- HTTP
+GET {{ApiBaseUrl}}/api/companies/{{CompanyId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Verify updated company should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Persisted company should have updated values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("CompanyId"), (int)body.id);
+    Equal("TeaPie Updated Company", (string)body.name);
+    Equal("TEACOMP", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Verify Deleted Company
+--- HTTP
+# @name DeleteCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{CompanyId}}
+
+###
+
+# @name VerifyDeletedCompany
+GET {{ApiBaseUrl}}/api/companies/{{CompanyId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Cleanup delete company should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["DeleteCompany"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Deleted company should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedCompany"].StatusCode());
+});
+--- END

@@ -1,0 +1,295 @@
+﻿--- TESTCASE Create Project Missing Name
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Test Company",
+  "code": "PROJCOMP",
+  "leaderId": null
+}
+
+###
+
+# @name SetupEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Project",
+  "lastName": "Leader",
+  "phone": "+421 900 222 333",
+  "email": "project.leader@example.com"
+}
+
+###
+
+# @name SetupDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Parent Division",
+  "code": "PRJDVI"
+}
+
+###
+
+# @name CreateProjectMissingName
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "code": "MISSNAME"
+}
+
+--- TEST
+tp.Test("Setup company, employee and division should be created.", async () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupEmployee"].StatusCode());
+    Equal(201, tp.Responses["SetupDivision"].StatusCode());
+
+    dynamic companyBody = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employeeBody = await tp.Responses["SetupEmployee"].GetBodyAsExpandoAsync();
+    dynamic divisionBody = await tp.Responses["SetupDivision"].GetBodyAsExpandoAsync();
+
+    tp.SetVariable("ProjectTestCompanyId", (int)companyBody.id);
+    tp.SetVariable("ProjectTestEmployeeId", (int)employeeBody.id);
+    tp.SetVariable("ProjectTestDivisionId", (int)divisionBody.id);
+});
+
+tp.Test("Create project without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateProjectMissingName"].StatusCode());
+});
+--- END
+
+
+--- TESTCASE Create Project
+--- HTTP
+POST {{ApiBaseUrl}}/api/divisions/{{ProjectTestDivisionId}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Test Project",
+  "code": "TEAPROJ"
+}
+
+--- TEST
+tp.Test("Create project should return 201.", () =>
+{
+    Equal(201, tp.Response.StatusCode());
+});
+
+tp.Test("Created project should have expected values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal("TeaPie Test Project", (string)body.name);
+    Equal("TEAPROJ", (string)body.code);
+    True((int)body.id > 0);
+
+    tp.SetVariable("ProjectId", (int)body.id);
+});
+--- END
+
+
+--- TESTCASE Create Project Duplicate Code
+--- HTTP
+POST {{ApiBaseUrl}}/api/divisions/{{ProjectTestDivisionId}}/projects
+Content-Type: application/json
+
+{
+  "name": "Duplicate Project",
+  "code": "TEAPROJ"
+}
+
+--- TEST
+tp.Test("Create project with duplicate code should fail.", () =>
+{
+    True(tp.Response.StatusCode() == 400 || tp.Response.StatusCode() == 409);
+});
+--- END
+
+
+--- TESTCASE Get Created Project By Id
+--- HTTP
+GET {{ApiBaseUrl}}/api/projects/{{ProjectId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Get project should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Fetched project should match created values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
+    Equal("TeaPie Test Project", (string)body.name);
+    Equal("TEAPROJ", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Assign Employee As Project Leader
+--- HTTP
+PUT {{ApiBaseUrl}}/api/projects/{{ProjectId}}/leader/{{ProjectTestEmployeeId}}
+
+--- TEST
+tp.Test("Assign employee as project leader should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+--- END
+
+
+--- TESTCASE Verify Employee Assigned As Project Leader
+--- HTTP
+GET {{ApiBaseUrl}}/api/projects/{{ProjectId}}/leader
+Accept: application/json
+
+--- TEST
+tp.Test("Get project leader should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Project leader should be the setup employee.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("ProjectTestEmployeeId"), (int)body.id);
+    Equal("Project", (string)body.firstName);
+    Equal("Leader", (string)body.lastName);
+    Equal("project.leader@example.com", (string)body.email);
+    Equal(tp.GetVariable<int>("ProjectTestCompanyId"), (int)body.companyId);
+});
+--- END
+
+
+--- TESTCASE Update Project
+--- HTTP
+PATCH {{ApiBaseUrl}}/api/projects/{{ProjectId}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Project"
+}
+
+--- TEST
+tp.Test("Update project should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Updated project should reflect changes.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
+    Equal("TeaPie Updated Project", (string)body.name);
+    Equal("TEAPROJ", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Verify Updated Project
+--- HTTP
+GET {{ApiBaseUrl}}/api/projects/{{ProjectId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Verify updated project should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Persisted project should have updated values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("ProjectId"), (int)body.id);
+    Equal("TeaPie Updated Project", (string)body.name);
+    Equal("TEAPROJ", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Remove Employee From Project Leader
+--- HTTP
+DELETE {{ApiBaseUrl}}/api/projects/{{ProjectId}}/leader
+
+--- TEST
+tp.Test("Remove project leader should return 200 or 204.", () =>
+{
+    True(tp.Response.StatusCode() == 200 || tp.Response.StatusCode() == 204);
+});
+--- END
+
+
+--- TESTCASE Verify Deleted Project
+--- HTTP
+# @name DeleteProject
+DELETE {{ApiBaseUrl}}/api/projects/{{ProjectId}}
+
+###
+
+# @name VerifyDeletedProject
+GET {{ApiBaseUrl}}/api/projects/{{ProjectId}}
+Accept: application/json
+
+###
+
+# @name CleanupDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{ProjectTestDivisionId}}
+
+###
+
+# @name CleanupEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{ProjectTestEmployeeId}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{ProjectTestCompanyId}}
+
+--- TEST
+tp.Test("Cleanup delete project should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["DeleteProject"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Deleted project should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedProject"].StatusCode());
+});
+
+tp.Test("Cleanup division should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["CleanupDivision"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Cleanup employee should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["CleanupEmployee"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Cleanup company should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["CleanupCompany"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+--- END

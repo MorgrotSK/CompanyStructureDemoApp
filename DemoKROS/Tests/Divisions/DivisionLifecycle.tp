@@ -1,0 +1,269 @@
+﻿--- TESTCASE Create Division Missing Name
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Division Test Company",
+  "code": "DIVCOMP",
+  "leaderId": null
+}
+
+###
+
+# @name SetupEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Division",
+  "lastName": "Leader",
+  "phone": "+421 900 111 222",
+  "email": "division.leader@example.com"
+}
+
+###
+
+# @name CreateDivisionMissingName
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "code": "MISSNAME"
+}
+
+--- TEST
+tp.Test("Setup company and employee should be created.", async () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupEmployee"].StatusCode());
+
+    dynamic companyBody = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employeeBody = await tp.Responses["SetupEmployee"].GetBodyAsExpandoAsync();
+
+    tp.SetVariable("DivisionTestCompanyId", (int)companyBody.id);
+    tp.SetVariable("DivisionTestEmployeeId", (int)employeeBody.id);
+});
+
+tp.Test("Create division without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDivisionMissingName"].StatusCode());
+});
+--- END
+
+
+--- TESTCASE Create Division
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies/{{DivisionTestCompanyId}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Test Division",
+  "code": "TEADIV"
+}
+
+--- TEST
+tp.Test("Create division should return 201.", () =>
+{
+    Equal(201, tp.Response.StatusCode());
+});
+
+tp.Test("Created division should have expected values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal("TeaPie Test Division", (string)body.name);
+    Equal("TEADIV", (string)body.code);
+    True((int)body.id > 0);
+
+    tp.SetVariable("DivisionId", (int)body.id);
+});
+--- END
+
+
+--- TESTCASE Create Division Duplicate Code
+--- HTTP
+POST {{ApiBaseUrl}}/api/companies/{{DivisionTestCompanyId}}/divisions
+Content-Type: application/json
+
+{
+  "name": "Duplicate Division",
+  "code": "TEADIV"
+}
+
+--- TEST
+tp.Test("Create division with duplicate code should fail.", () =>
+{
+    True(tp.Response.StatusCode() == 400 || tp.Response.StatusCode() == 409);
+});
+--- END
+
+
+--- TESTCASE Get Created Division By Id
+--- HTTP
+GET {{ApiBaseUrl}}/api/divisions/{{DivisionId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Get division should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Fetched division should match created values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("DivisionId"), (int)body.id);
+    Equal("TeaPie Test Division", (string)body.name);
+    Equal("TEADIV", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Assign Employee As Division Leader
+--- HTTP
+PUT {{ApiBaseUrl}}/api/divisions/{{DivisionId}}/leader/{{DivisionTestEmployeeId}}
+
+--- TEST
+tp.Test("Assign employee as division leader should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+--- END
+
+
+--- TESTCASE Verify Employee Assigned As Division Leader
+--- HTTP
+GET {{ApiBaseUrl}}/api/divisions/{{DivisionId}}/leader
+Accept: application/json
+
+--- TEST
+tp.Test("Get division leader should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Division leader should be the setup employee.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("DivisionTestEmployeeId"), (int)body.id);
+    Equal("Division", (string)body.firstName);
+    Equal("Leader", (string)body.lastName);
+    Equal("division.leader@example.com", (string)body.email);
+    Equal(tp.GetVariable<int>("DivisionTestCompanyId"), (int)body.companyId);
+});
+--- END
+
+
+--- TESTCASE Update Division
+--- HTTP
+PATCH {{ApiBaseUrl}}/api/divisions/{{DivisionId}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Division"
+}
+
+--- TEST
+tp.Test("Update division should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Updated division should reflect changes.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("DivisionId"), (int)body.id);
+    Equal("TeaPie Updated Division", (string)body.name);
+    Equal("TEADIV", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Verify Updated Division
+--- HTTP
+GET {{ApiBaseUrl}}/api/divisions/{{DivisionId}}
+Accept: application/json
+
+--- TEST
+tp.Test("Verify updated division should return 200.", () =>
+{
+    Equal(200, tp.Response.StatusCode());
+});
+
+tp.Test("Persisted division should have updated values.", async () =>
+{
+    dynamic body = await tp.Response.GetBodyAsExpandoAsync();
+
+    Equal(tp.GetVariable<int>("DivisionId"), (int)body.id);
+    Equal("TeaPie Updated Division", (string)body.name);
+    Equal("TEADIV", (string)body.code);
+});
+--- END
+
+
+--- TESTCASE Remove Employee From Division Leader
+--- HTTP
+DELETE {{ApiBaseUrl}}/api/divisions/{{DivisionId}}/leader
+
+--- TEST
+tp.Test("Remove division leader should return 200 or 204.", () =>
+{
+    True(tp.Response.StatusCode() == 200 || tp.Response.StatusCode() == 204);
+});
+--- END
+
+
+--- TESTCASE Verify Deleted Division
+--- HTTP
+# @name DeleteDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{DivisionId}}
+
+###
+
+# @name VerifyDeletedDivision
+GET {{ApiBaseUrl}}/api/divisions/{{DivisionId}}
+Accept: application/json
+
+###
+
+# @name CleanupEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{DivisionTestEmployeeId}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{DivisionTestCompanyId}}
+
+--- TEST
+tp.Test("Cleanup delete division should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["DeleteDivision"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Deleted division should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedDivision"].StatusCode());
+});
+
+tp.Test("Cleanup employee should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["CleanupEmployee"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+
+tp.Test("Cleanup company should return 204 or 404.", () =>
+{
+    int statusCode = tp.Responses["CleanupCompany"].StatusCode();
+
+    True(statusCode == 204 || statusCode == 404);
+});
+--- END
