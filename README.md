@@ -26,15 +26,19 @@ Edit `appsettings.json`:
 }
 ```
 
-### 2. Install Entity Framework CLI tools
+### 2. Create database
+
+Execute the provided `script.sql` script on the database configured in `appsettings.json` connection string.
+
+Alternative using Entity Framework migrations:
+
+#### Install Entity Framework CLI tools
 
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-### 3. Create database
-
-Apply Entity Framework migrations:
+#### Apply migrations
 
 ```bash
 dotnet ef database update
@@ -61,7 +65,5 @@ https://localhost:xxxx/scalar
 ```
 
 ## Notes
-
 - DTO validation is implemented using data annotations.
 - Global exception handling is implemented using `IExceptionHandler`.
-- OpenAPI documentation is generated automatically.
