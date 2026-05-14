@@ -1,4 +1,5 @@
-﻿using DemoKROS.DTO.Common;
+﻿using DemoKROS.Constants;
+using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Departments;
 using DemoKROS.DTO.Employees;
 using DemoKROS.Services;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DemoKROS.Controllers;
 
 [ApiController]
-[Route("api/departments")]
+[Route(ApiRoutes.Departments)]
 public class DepartmentsController(DepartmentsService departmentsService) : ControllerBase
 {
     [HttpGet]
@@ -18,7 +19,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         return Ok(departments);
     }
 
-    [HttpGet("{departmentId:int}")]
+    [HttpGet(ApiRoutes.DepartmentsRoutes.ById, Name = ApiRoutes.RouteNames.GetDepartmentById)]
     [ProducesResponseType(typeof(DepartmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DepartmentResponse>> GetById(int departmentId)
@@ -26,8 +27,8 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         var department = await departmentsService.GetByIdAsync(departmentId);
         return Ok(department);
     }
-    
-    [HttpPatch("{departmentId:int}")]
+
+    [HttpPatch(ApiRoutes.DepartmentsRoutes.ById)]
     [ProducesResponseType(typeof(DepartmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -36,8 +37,8 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         var department = await departmentsService.UpdateAsync(departmentId, request);
         return Ok(department);
     }
-    
-    [HttpDelete("{departmentId:int}")]
+
+    [HttpDelete(ApiRoutes.DepartmentsRoutes.ById)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int departmentId)
@@ -45,8 +46,8 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         await departmentsService.DeleteAsync(departmentId);
         return NoContent();
     }
-    
-    [HttpGet("{departmentId:int}/leader")]
+
+    [HttpGet(ApiRoutes.DepartmentsRoutes.Leader)]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeResponse>> GetLeader(int departmentId)
@@ -55,7 +56,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         return Ok(leader);
     }
 
-    [HttpPut("{departmentId:int}/leader/{leaderId:int}")]
+    [HttpPut(ApiRoutes.DepartmentsRoutes.LeaderById)]
     [ProducesResponseType(typeof(DepartmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -65,7 +66,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
         return Ok(department);
     }
 
-    [HttpDelete("{departmentId:int}/leader")]
+    [HttpDelete(ApiRoutes.DepartmentsRoutes.Leader)]
     [ProducesResponseType(typeof(DepartmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DepartmentResponse>> RemoveLeader(int departmentId)

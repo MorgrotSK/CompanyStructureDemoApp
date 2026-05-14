@@ -1,0 +1,135 @@
+﻿--- TESTCASE Company Lifecycle
+--- HTTP
+# @name CreateCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Company {{CompanyLifecycleSuffix}}",
+  "code": "C{{CompanyLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateCompanyDuplicateCode
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Duplicate Company {{CompanyLifecycleSuffix}}",
+  "code": "C{{CompanyLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name GetCompany
+GET {{ApiBaseUrl}}/api/companies/{{CreateCompany.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name UpdateCompany
+PATCH {{ApiBaseUrl}}/api/companies/{{CreateCompany.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Company {{CompanyLifecycleSuffix}}"
+}
+
+###
+
+# @name VerifyUpdatedCompany
+GET {{ApiBaseUrl}}/api/companies/{{CreateCompany.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name DeleteCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{CreateCompany.response.body.$.id}}
+
+###
+
+# @name VerifyDeletedCompany
+GET {{ApiBaseUrl}}/api/companies/{{CreateCompany.response.body.$.id}}
+Accept: application/json
+
+--- TEST
+tp.SetVariable("CompanyLifecycleSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Create company should return 201.", () =>
+{
+    Equal(201, tp.Responses["CreateCompany"].StatusCode());
+});
+
+tp.Test("Created company should have expected values.", async () =>
+{
+    dynamic body = await tp.Responses["CreateCompany"].GetBodyAsExpandoAsync();
+
+    True((int)body.id > 0);
+    Equal("TeaPie Company " + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)body.name);
+    Equal("C" + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)body.code);
+    Null(body.leaderId);
+});
+
+tp.Test("Create company with duplicate code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateCompanyDuplicateCode"].StatusCode());
+});
+
+tp.Test("Get company should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetCompany"].StatusCode());
+});
+
+tp.Test("Fetched company should match created values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateCompany"].GetBodyAsExpandoAsync();
+    dynamic fetched = await tp.Responses["GetCompany"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)fetched.id);
+    Equal("TeaPie Company " + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)fetched.name);
+    Equal("C" + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)fetched.code);
+});
+
+tp.Test("Update company should return 200.", () =>
+{
+    Equal(200, tp.Responses["UpdateCompany"].StatusCode());
+});
+
+tp.Test("Updated company should have updated name and same code.", async () =>
+{
+    dynamic created = await tp.Responses["CreateCompany"].GetBodyAsExpandoAsync();
+    dynamic updated = await tp.Responses["UpdateCompany"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)updated.id);
+    Equal("TeaPie Updated Company " + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)updated.name);
+    Equal("C" + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)updated.code);
+});
+
+tp.Test("Verify updated company should return 200.", () =>
+{
+    Equal(200, tp.Responses["VerifyUpdatedCompany"].StatusCode());
+});
+
+tp.Test("Persisted company should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateCompany"].GetBodyAsExpandoAsync();
+    dynamic persisted = await tp.Responses["VerifyUpdatedCompany"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)persisted.id);
+    Equal("TeaPie Updated Company " + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)persisted.name);
+    Equal("C" + tp.GetVariable<string>("CompanyLifecycleSuffix"), (string)persisted.code);
+});
+
+tp.Test("Delete company should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteCompany"].StatusCode());
+});
+
+tp.Test("Deleted company should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedCompany"].StatusCode());
+});
+--- END

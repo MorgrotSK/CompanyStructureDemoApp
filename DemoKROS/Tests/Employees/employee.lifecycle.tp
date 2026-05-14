@@ -1,0 +1,164 @@
+﻿--- TESTCASE Employee Lifecycle
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Employee Lifecycle Company {{EmployeeLifecycleSuffix}}",
+  "code": "ELC{{EmployeeLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "TeaPie",
+  "lastName": "Employee",
+  "phone": "+421 900 123 456",
+  "email": "employee.lifecycle.{{EmployeeLifecycleSuffix}}@example.com"
+}
+
+###
+
+# @name GetEmployee
+GET {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name UpdateEmployee
+PATCH {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "title": "Ing.",
+  "firstName": "Updated",
+  "lastName": "Employee",
+  "phone": "+421 901 555 777",
+  "email": "employee.updated.{{EmployeeLifecycleSuffix}}@example.com"
+}
+
+###
+
+# @name VerifyUpdatedEmployee
+GET {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name DeleteEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+
+###
+
+# @name VerifyDeletedEmployee
+GET {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("EmployeeLifecycleSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+});
+
+tp.Test("Create employee should return 201.", () =>
+{
+    Equal(201, tp.Responses["CreateEmployee"].StatusCode());
+});
+
+tp.Test("Created employee should have expected values.", async () =>
+{
+    dynamic company = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employee = await tp.Responses["CreateEmployee"].GetBodyAsExpandoAsync();
+
+    True((int)employee.id > 0);
+    Equal("Mr.", (string)employee.title);
+    Equal("TeaPie", (string)employee.firstName);
+    Equal("Employee", (string)employee.lastName);
+    Equal("+421 900 123 456", (string)employee.phone);
+    Equal("employee.lifecycle." + tp.GetVariable<string>("EmployeeLifecycleSuffix") + "@example.com", (string)employee.email);
+    Equal((int)company.id, (int)employee.companyId);
+});
+
+tp.Test("Get employee should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetEmployee"].StatusCode());
+});
+
+tp.Test("Fetched employee should match created values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateEmployee"].GetBodyAsExpandoAsync();
+    dynamic fetched = await tp.Responses["GetEmployee"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)fetched.id);
+    Equal("Mr.", (string)fetched.title);
+    Equal("TeaPie", (string)fetched.firstName);
+    Equal("Employee", (string)fetched.lastName);
+    Equal("+421 900 123 456", (string)fetched.phone);
+    Equal("employee.lifecycle." + tp.GetVariable<string>("EmployeeLifecycleSuffix") + "@example.com", (string)fetched.email);
+});
+
+tp.Test("Update employee should return 200.", () =>
+{
+    Equal(200, tp.Responses["UpdateEmployee"].StatusCode());
+});
+
+tp.Test("Updated employee should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateEmployee"].GetBodyAsExpandoAsync();
+    dynamic updated = await tp.Responses["UpdateEmployee"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)updated.id);
+    Equal("Ing.", (string)updated.title);
+    Equal("Updated", (string)updated.firstName);
+    Equal("Employee", (string)updated.lastName);
+    Equal("+421 901 555 777", (string)updated.phone);
+    Equal("employee.updated." + tp.GetVariable<string>("EmployeeLifecycleSuffix") + "@example.com", (string)updated.email);
+});
+
+tp.Test("Verify updated employee should return 200.", () =>
+{
+    Equal(200, tp.Responses["VerifyUpdatedEmployee"].StatusCode());
+});
+
+tp.Test("Persisted employee should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateEmployee"].GetBodyAsExpandoAsync();
+    dynamic persisted = await tp.Responses["VerifyUpdatedEmployee"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)persisted.id);
+    Equal("Ing.", (string)persisted.title);
+    Equal("Updated", (string)persisted.firstName);
+    Equal("Employee", (string)persisted.lastName);
+    Equal("+421 901 555 777", (string)persisted.phone);
+    Equal("employee.updated." + tp.GetVariable<string>("EmployeeLifecycleSuffix") + "@example.com", (string)persisted.email);
+});
+
+tp.Test("Delete employee should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteEmployee"].StatusCode());
+});
+
+tp.Test("Deleted employee should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedEmployee"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

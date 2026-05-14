@@ -1,0 +1,105 @@
+﻿--- TESTCASE Department Validation
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Validation Company {{DepartmentValidationSuffix}}",
+  "code": "DPTVC{{DepartmentValidationSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupProject
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Validation Division {{DepartmentValidationSuffix}}",
+  "code": "DPTVD{{DepartmentValidationSuffix}}"
+}
+
+###
+
+# @name SetupDivisionProject
+POST {{ApiBaseUrl}}/api/divisions/{{SetupProject.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Validation Project {{DepartmentValidationSuffix}}",
+  "code": "DPTVP{{DepartmentValidationSuffix}}"
+}
+
+###
+
+# @name CreateDepartmentMissingName
+POST {{ApiBaseUrl}}/api/projects/{{SetupDivisionProject.response.body.$.id}}/departments
+Content-Type: application/json
+
+{
+  "code": "DPTVM{{DepartmentValidationSuffix}}"
+}
+
+###
+
+# @name CreateDepartmentTooLongCode
+POST {{ApiBaseUrl}}/api/projects/{{SetupDivisionProject.response.body.$.id}}/departments
+Content-Type: application/json
+
+{
+  "name": "Invalid Department {{DepartmentValidationSuffix}}",
+  "code": "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234"
+}
+
+###
+
+# @name CleanupProject
+DELETE {{ApiBaseUrl}}/api/projects/{{SetupDivisionProject.response.body.$.id}}
+
+###
+
+# @name CleanupDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{SetupProject.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DepartmentValidationSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company, division and project should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupProject"].StatusCode());
+    Equal(201, tp.Responses["SetupDivisionProject"].StatusCode());
+});
+
+tp.Test("Create department without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDepartmentMissingName"].StatusCode());
+});
+
+tp.Test("Create department with too long code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDepartmentTooLongCode"].StatusCode());
+});
+
+tp.Test("Cleanup project should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupProject"].StatusCode());
+});
+
+tp.Test("Cleanup division should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupDivision"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

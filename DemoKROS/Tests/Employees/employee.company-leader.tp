@@ -1,0 +1,103 @@
+﻿--- TESTCASE Employee Company Leader
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Employee Leader Company {{EmployeeLeaderSuffix}}",
+  "code": "ELD{{EmployeeLeaderSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Company",
+  "lastName": "Leader",
+  "phone": "+421 900 777 888",
+  "email": "company.leader.{{EmployeeLeaderSuffix}}@example.com"
+}
+
+###
+
+# @name AssignCompanyLeader
+PUT {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/leader/{{CreateEmployee.response.body.$.id}}
+
+###
+
+# @name GetCompanyLeader
+GET {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/leader
+Accept: application/json
+
+###
+
+# @name RemoveCompanyLeader
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/leader
+
+###
+
+# @name DeleteEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{CreateEmployee.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("EmployeeLeaderSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company and employee should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["CreateEmployee"].StatusCode());
+});
+
+tp.Test("Assign employee as company leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["AssignCompanyLeader"].StatusCode());
+});
+
+tp.Test("Get company leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetCompanyLeader"].StatusCode());
+});
+
+tp.Test("Company leader should be the created employee.", async () =>
+{
+    dynamic company = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employee = await tp.Responses["CreateEmployee"].GetBodyAsExpandoAsync();
+    dynamic leader = await tp.Responses["GetCompanyLeader"].GetBodyAsExpandoAsync();
+
+    Equal((int)employee.id, (int)leader.id);
+    Equal("Mr.", (string)leader.title);
+    Equal("Company", (string)leader.firstName);
+    Equal("Leader", (string)leader.lastName);
+    Equal("+421 900 777 888", (string)leader.phone);
+    Equal("company.leader." + tp.GetVariable<string>("EmployeeLeaderSuffix") + "@example.com", (string)leader.email);
+    Equal((int)company.id, (int)leader.companyId);
+});
+
+tp.Test("Remove company leader should return 200 or 204.", () =>
+{
+    int statusCode = tp.Responses["RemoveCompanyLeader"].StatusCode();
+
+    True(statusCode == 200 || statusCode == 204);
+});
+
+tp.Test("Delete employee should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteEmployee"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

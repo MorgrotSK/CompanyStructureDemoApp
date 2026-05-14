@@ -51,6 +51,7 @@ public class CompaniesService(AppDbContext dbContext, OrganizationNodeService or
 
     public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request)
     {
+        Console.WriteLine($"Received request: Name={request.Name}, Code={request.Code}");
         bool codeExists = await dbContext.Companies.AnyAsync(c => c.Code == request.Code);
         if (codeExists) throw new ValidationException("Company code already exists.");
 

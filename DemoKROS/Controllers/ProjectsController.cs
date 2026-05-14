@@ -1,4 +1,5 @@
-﻿using DemoKROS.DTO.Common;
+﻿using DemoKROS.Constants;
+using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Departments;
 using DemoKROS.DTO.Employees;
 using DemoKROS.DTO.Projects;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DemoKROS.Controllers;
 
 [ApiController]
-[Route("api/projects")]
+[Route(ApiRoutes.Projects)]
 public class ProjectsController(ProjectsService projectsService, DepartmentsService departmentsService) : ControllerBase
 {
     [HttpGet]
@@ -19,7 +20,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         return Ok(projects);
     }
 
-    [HttpGet("{projectId:int}")]
+    [HttpGet(ApiRoutes.ProjectsRoutes.ById, Name = ApiRoutes.RouteNames.GetProjectById)]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectResponse>> GetById(int projectId)
@@ -27,8 +28,8 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         var project = await projectsService.GetByIdAsync(projectId);
         return Ok(project);
     }
-    
-    [HttpGet("{projectId:int}/departments")]
+
+    [HttpGet(ApiRoutes.ProjectsRoutes.Departments)]
     [ProducesResponseType(typeof(List<DepartmentResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<DepartmentResponse>>> GetProjectDepartments(int projectId)
@@ -36,20 +37,17 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         var departments = await projectsService.GetProjectDepartmentsAsync(projectId);
         return Ok(departments);
     }
-    
-    [HttpPost("{projectId:int}/departments")]
+
+    [HttpPost(ApiRoutes.ProjectsRoutes.Departments)]
     [ProducesResponseType(typeof(DepartmentResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DepartmentResponse>> Create(int projectId, CreateDepartmentRequest request)
     {
         var department = await departmentsService.CreateAsync(request, projectId);
+        return CreatedAtRoute(ApiRoutes.RouteNames.GetDepartmentById, new { departmentId = department.Id }, department);    }
 
-        return Created($"/api/departments/{department.Id}", department
-        );
-    }
-    
-    [HttpPatch("{projectId:int}")]
+    [HttpPatch(ApiRoutes.ProjectsRoutes.ById)]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -59,17 +57,16 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         return Ok(project);
     }
 
-    [HttpDelete("{projectId:int}")]
+    [HttpDelete(ApiRoutes.ProjectsRoutes.ById)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int projectId)
     {
         await projectsService.DeleteAsync(projectId);
-
         return NoContent();
     }
-    
-    [HttpGet("{projectId:int}/leader")]
+
+    [HttpGet(ApiRoutes.ProjectsRoutes.Leader)]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeResponse>> GetLeader(int projectId)
@@ -78,7 +75,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         return Ok(leader);
     }
 
-    [HttpPut("{projectId:int}/leader/{leaderId:int}")]
+    [HttpPut(ApiRoutes.ProjectsRoutes.LeaderById)]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -88,7 +85,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
         return Ok(project);
     }
 
-    [HttpDelete("{projectId:int}/leader")]
+    [HttpDelete(ApiRoutes.ProjectsRoutes.Leader)]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectResponse>> RemoveLeader(int projectId)

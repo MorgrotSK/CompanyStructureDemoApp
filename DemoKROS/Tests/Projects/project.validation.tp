@@ -1,0 +1,83 @@
+﻿--- TESTCASE Project Validation
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Validation Company {{ProjectValidationSuffix}}",
+  "code": "PVC{{ProjectValidationSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Validation Division {{ProjectValidationSuffix}}",
+  "code": "PVD{{ProjectValidationSuffix}}"
+}
+
+###
+
+# @name CreateProjectMissingName
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "code": "PVM{{ProjectValidationSuffix}}"
+}
+
+###
+
+# @name CreateProjectTooLongCode
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "Invalid Project {{ProjectValidationSuffix}}",
+  "code": "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234"
+}
+
+###
+
+# @name CleanupDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("ProjectValidationSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company and division should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupDivision"].StatusCode());
+});
+
+tp.Test("Create project without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateProjectMissingName"].StatusCode());
+});
+
+tp.Test("Create project with too long code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateProjectTooLongCode"].StatusCode());
+});
+
+tp.Test("Cleanup division should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupDivision"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

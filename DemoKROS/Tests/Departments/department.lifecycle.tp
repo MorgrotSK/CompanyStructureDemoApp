@@ -1,0 +1,203 @@
+﻿--- TESTCASE Department Lifecycle
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Lifecycle Company {{DepartmentLifecycleSuffix}}",
+  "code": "DPTLC{{DepartmentLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Lifecycle Division {{DepartmentLifecycleSuffix}}",
+  "code": "DPTLD{{DepartmentLifecycleSuffix}}"
+}
+
+###
+
+# @name SetupProject
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Lifecycle Project {{DepartmentLifecycleSuffix}}",
+  "code": "DPTLP{{DepartmentLifecycleSuffix}}"
+}
+
+###
+
+# @name CreateDepartment
+POST {{ApiBaseUrl}}/api/projects/{{SetupProject.response.body.$.id}}/departments
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department {{DepartmentLifecycleSuffix}}",
+  "code": "DPTL{{DepartmentLifecycleSuffix}}"
+}
+
+###
+
+# @name CreateDepartmentDuplicateCode
+POST {{ApiBaseUrl}}/api/projects/{{SetupProject.response.body.$.id}}/departments
+Content-Type: application/json
+
+{
+  "name": "TeaPie Duplicate Department {{DepartmentLifecycleSuffix}}",
+  "code": "DPTL{{DepartmentLifecycleSuffix}}"
+}
+
+###
+
+# @name GetDepartment
+GET {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name UpdateDepartment
+PATCH {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Department {{DepartmentLifecycleSuffix}}"
+}
+
+###
+
+# @name VerifyUpdatedDepartment
+GET {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name DeleteDepartment
+DELETE {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+
+###
+
+# @name VerifyDeletedDepartment
+GET {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name CleanupProject
+DELETE {{ApiBaseUrl}}/api/projects/{{SetupProject.response.body.$.id}}
+
+###
+
+# @name CleanupDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DepartmentLifecycleSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company, division and project should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupDivision"].StatusCode());
+    Equal(201, tp.Responses["SetupProject"].StatusCode());
+});
+
+tp.Test("Create department should return 201.", () =>
+{
+    Equal(201, tp.Responses["CreateDepartment"].StatusCode());
+});
+
+tp.Test("Created department should have expected values.", async () =>
+{
+    dynamic department = await tp.Responses["CreateDepartment"].GetBodyAsExpandoAsync();
+
+    True((int)department.id > 0);
+    Equal("TeaPie Department " + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)department.name);
+    Equal("DPTL" + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)department.code);
+});
+
+tp.Test("Create department with duplicate code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDepartmentDuplicateCode"].StatusCode());
+});
+
+tp.Test("Get department should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetDepartment"].StatusCode());
+});
+
+tp.Test("Fetched department should match created values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDepartment"].GetBodyAsExpandoAsync();
+    dynamic fetched = await tp.Responses["GetDepartment"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)fetched.id);
+    Equal("TeaPie Department " + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)fetched.name);
+    Equal("DPTL" + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)fetched.code);
+});
+
+tp.Test("Update department should return 200.", () =>
+{
+    Equal(200, tp.Responses["UpdateDepartment"].StatusCode());
+});
+
+tp.Test("Updated department should have updated name and same code.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDepartment"].GetBodyAsExpandoAsync();
+    dynamic updated = await tp.Responses["UpdateDepartment"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)updated.id);
+    Equal("TeaPie Updated Department " + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)updated.name);
+    Equal("DPTL" + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)updated.code);
+});
+
+tp.Test("Verify updated department should return 200.", () =>
+{
+    Equal(200, tp.Responses["VerifyUpdatedDepartment"].StatusCode());
+});
+
+tp.Test("Persisted department should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDepartment"].GetBodyAsExpandoAsync();
+    dynamic persisted = await tp.Responses["VerifyUpdatedDepartment"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)persisted.id);
+    Equal("TeaPie Updated Department " + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)persisted.name);
+    Equal("DPTL" + tp.GetVariable<string>("DepartmentLifecycleSuffix"), (string)persisted.code);
+});
+
+tp.Test("Delete department should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteDepartment"].StatusCode());
+});
+
+tp.Test("Deleted department should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedDepartment"].StatusCode());
+});
+
+tp.Test("Cleanup project should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupProject"].StatusCode());
+});
+
+tp.Test("Cleanup division should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupDivision"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

@@ -1,0 +1,86 @@
+﻿--- TESTCASE Employee Validation
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Employee Validation Company {{EmployeeValidationSuffix}}",
+  "code": "EVC{{EmployeeValidationSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateEmployeeMissingFirstName
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "lastName": "Employee",
+  "phone": "+421 900 123 456",
+  "email": "employee.missing.firstname.{{EmployeeValidationSuffix}}@example.com"
+}
+
+###
+
+# @name CreateEmployeeInvalidEmail
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Invalid",
+  "lastName": "Email",
+  "phone": "+421 900 123 456",
+  "email": "invalid-email"
+}
+
+###
+
+# @name CreateEmployeeInvalidPhone
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Invalid",
+  "lastName": "Phone",
+  "phone": "not-a-phone-number",
+  "email": "employee.invalid.phone.{{EmployeeValidationSuffix}}@example.com"
+}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("EmployeeValidationSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+});
+
+tp.Test("Create employee without first name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateEmployeeMissingFirstName"].StatusCode());
+});
+
+tp.Test("Create employee with invalid email should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateEmployeeInvalidEmail"].StatusCode());
+});
+
+tp.Test("Create employee with invalid phone should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateEmployeeInvalidPhone"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

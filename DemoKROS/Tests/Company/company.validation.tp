@@ -1,0 +1,36 @@
+﻿--- TESTCASE Company Validation
+--- HTTP
+# @name CreateCompanyMissingName
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "code": "CMN{{CompanyValidationSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateCompanyTooLongCode
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "Invalid Company {{CompanyValidationSuffix}}",
+  "code": "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234",
+  "leaderId": null
+}
+
+--- TEST
+tp.SetVariable("CompanyValidationSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Create company without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateCompanyMissingName"].StatusCode());
+});
+
+tp.Test("Create company with too long code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateCompanyTooLongCode"].StatusCode());
+});
+--- END

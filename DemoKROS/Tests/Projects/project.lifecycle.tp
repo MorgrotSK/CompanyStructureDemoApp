@@ -1,0 +1,181 @@
+﻿--- TESTCASE Project Lifecycle
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Lifecycle Company {{ProjectLifecycleSuffix}}",
+  "code": "PLC{{ProjectLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project Lifecycle Division {{ProjectLifecycleSuffix}}",
+  "code": "PLD{{ProjectLifecycleSuffix}}"
+}
+
+###
+
+# @name CreateProject
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Project {{ProjectLifecycleSuffix}}",
+  "code": "PL{{ProjectLifecycleSuffix}}"
+}
+
+###
+
+# @name CreateProjectDuplicateCode
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Duplicate Project {{ProjectLifecycleSuffix}}",
+  "code": "PL{{ProjectLifecycleSuffix}}"
+}
+
+###
+
+# @name GetProject
+GET {{ApiBaseUrl}}/api/projects/{{CreateProject.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name UpdateProject
+PATCH {{ApiBaseUrl}}/api/projects/{{CreateProject.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Project {{ProjectLifecycleSuffix}}"
+}
+
+###
+
+# @name VerifyUpdatedProject
+GET {{ApiBaseUrl}}/api/projects/{{CreateProject.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name DeleteProject
+DELETE {{ApiBaseUrl}}/api/projects/{{CreateProject.response.body.$.id}}
+
+###
+
+# @name VerifyDeletedProject
+GET {{ApiBaseUrl}}/api/projects/{{CreateProject.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name CleanupDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("ProjectLifecycleSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company and division should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupDivision"].StatusCode());
+});
+
+tp.Test("Create project should return 201.", () =>
+{
+    Equal(201, tp.Responses["CreateProject"].StatusCode());
+});
+
+tp.Test("Created project should have expected values.", async () =>
+{
+    dynamic project = await tp.Responses["CreateProject"].GetBodyAsExpandoAsync();
+
+    True((int)project.id > 0);
+    Equal("TeaPie Project " + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)project.name);
+    Equal("PL" + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)project.code);
+});
+
+tp.Test("Create project with duplicate code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateProjectDuplicateCode"].StatusCode());
+});
+
+tp.Test("Get project should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetProject"].StatusCode());
+});
+
+tp.Test("Fetched project should match created values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateProject"].GetBodyAsExpandoAsync();
+    dynamic fetched = await tp.Responses["GetProject"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)fetched.id);
+    Equal("TeaPie Project " + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)fetched.name);
+    Equal("PL" + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)fetched.code);
+});
+
+tp.Test("Update project should return 200.", () =>
+{
+    Equal(200, tp.Responses["UpdateProject"].StatusCode());
+});
+
+tp.Test("Updated project should have updated name and same code.", async () =>
+{
+    dynamic created = await tp.Responses["CreateProject"].GetBodyAsExpandoAsync();
+    dynamic updated = await tp.Responses["UpdateProject"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)updated.id);
+    Equal("TeaPie Updated Project " + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)updated.name);
+    Equal("PL" + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)updated.code);
+});
+
+tp.Test("Verify updated project should return 200.", () =>
+{
+    Equal(200, tp.Responses["VerifyUpdatedProject"].StatusCode());
+});
+
+tp.Test("Persisted project should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateProject"].GetBodyAsExpandoAsync();
+    dynamic persisted = await tp.Responses["VerifyUpdatedProject"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)persisted.id);
+    Equal("TeaPie Updated Project " + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)persisted.name);
+    Equal("PL" + tp.GetVariable<string>("ProjectLifecycleSuffix"), (string)persisted.code);
+});
+
+tp.Test("Delete project should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteProject"].StatusCode());
+});
+
+tp.Test("Deleted project should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedProject"].StatusCode());
+});
+
+tp.Test("Cleanup division should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupDivision"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

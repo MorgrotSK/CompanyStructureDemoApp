@@ -1,0 +1,159 @@
+﻿--- TESTCASE Division Lifecycle
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Division Lifecycle Company {{DivisionLifecycleSuffix}}",
+  "code": "DLC{{DivisionLifecycleSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Division {{DivisionLifecycleSuffix}}",
+  "code": "DL{{DivisionLifecycleSuffix}}"
+}
+
+###
+
+# @name CreateDivisionDuplicateCode
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Duplicate Division {{DivisionLifecycleSuffix}}",
+  "code": "DL{{DivisionLifecycleSuffix}}"
+}
+
+###
+
+# @name GetDivision
+GET {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name UpdateDivision
+PATCH {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "name": "TeaPie Updated Division {{DivisionLifecycleSuffix}}"
+}
+
+###
+
+# @name VerifyUpdatedDivision
+GET {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name DeleteDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+
+###
+
+# @name VerifyDeletedDivision
+GET {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+Accept: application/json
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DivisionLifecycleSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+});
+
+tp.Test("Create division should return 201.", () =>
+{
+    Equal(201, tp.Responses["CreateDivision"].StatusCode());
+});
+
+tp.Test("Created division should have expected values.", async () =>
+{
+    dynamic division = await tp.Responses["CreateDivision"].GetBodyAsExpandoAsync();
+
+    True((int)division.id > 0);
+    Equal("TeaPie Division " + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)division.name);
+    Equal("DL" + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)division.code);
+});
+
+tp.Test("Create division with duplicate code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDivisionDuplicateCode"].StatusCode());
+});
+
+tp.Test("Get division should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetDivision"].StatusCode());
+});
+
+tp.Test("Fetched division should match created values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDivision"].GetBodyAsExpandoAsync();
+    dynamic fetched = await tp.Responses["GetDivision"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)fetched.id);
+    Equal("TeaPie Division " + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)fetched.name);
+    Equal("DL" + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)fetched.code);
+});
+
+tp.Test("Update division should return 200.", () =>
+{
+    Equal(200, tp.Responses["UpdateDivision"].StatusCode());
+});
+
+tp.Test("Updated division should have updated name and same code.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDivision"].GetBodyAsExpandoAsync();
+    dynamic updated = await tp.Responses["UpdateDivision"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)updated.id);
+    Equal("TeaPie Updated Division " + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)updated.name);
+    Equal("DL" + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)updated.code);
+});
+
+tp.Test("Verify updated division should return 200.", () =>
+{
+    Equal(200, tp.Responses["VerifyUpdatedDivision"].StatusCode());
+});
+
+tp.Test("Persisted division should have updated values.", async () =>
+{
+    dynamic created = await tp.Responses["CreateDivision"].GetBodyAsExpandoAsync();
+    dynamic persisted = await tp.Responses["VerifyUpdatedDivision"].GetBodyAsExpandoAsync();
+
+    Equal((int)created.id, (int)persisted.id);
+    Equal("TeaPie Updated Division " + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)persisted.name);
+    Equal("DL" + tp.GetVariable<string>("DivisionLifecycleSuffix"), (string)persisted.code);
+});
+
+tp.Test("Delete division should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteDivision"].StatusCode());
+});
+
+tp.Test("Deleted division should return 404.", () =>
+{
+    Equal(404, tp.Responses["VerifyDeletedDivision"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

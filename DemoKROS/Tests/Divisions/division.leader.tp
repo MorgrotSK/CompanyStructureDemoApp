@@ -1,0 +1,125 @@
+﻿--- TESTCASE Division Leader
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Division Leader Company {{DivisionLeaderSuffix}}",
+  "code": "DLD{{DivisionLeaderSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Division",
+  "lastName": "Leader",
+  "phone": "+421 900 111 222",
+  "email": "division.leader.{{DivisionLeaderSuffix}}@example.com"
+}
+
+###
+
+# @name CreateDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Leader Division {{DivisionLeaderSuffix}}",
+  "code": "DLE{{DivisionLeaderSuffix}}"
+}
+
+###
+
+# @name AssignDivisionLeader
+PUT {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}/leader/{{SetupEmployee.response.body.$.id}}
+
+###
+
+# @name GetDivisionLeader
+GET {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}/leader
+Accept: application/json
+
+###
+
+# @name RemoveDivisionLeader
+DELETE {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}/leader
+
+###
+
+# @name DeleteDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{CreateDivision.response.body.$.id}}
+
+###
+
+# @name DeleteEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{SetupEmployee.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DivisionLeaderSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company, employee and division should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupEmployee"].StatusCode());
+    Equal(201, tp.Responses["CreateDivision"].StatusCode());
+});
+
+tp.Test("Assign employee as division leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["AssignDivisionLeader"].StatusCode());
+});
+
+tp.Test("Get division leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetDivisionLeader"].StatusCode());
+});
+
+tp.Test("Division leader should be the setup employee.", async () =>
+{
+    dynamic company = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employee = await tp.Responses["SetupEmployee"].GetBodyAsExpandoAsync();
+    dynamic leader = await tp.Responses["GetDivisionLeader"].GetBodyAsExpandoAsync();
+
+    Equal((int)employee.id, (int)leader.id);
+    Equal("Mr.", (string)leader.title);
+    Equal("Division", (string)leader.firstName);
+    Equal("Leader", (string)leader.lastName);
+    Equal("+421 900 111 222", (string)leader.phone);
+    Equal("division.leader." + tp.GetVariable<string>("DivisionLeaderSuffix") + "@example.com", (string)leader.email);
+    Equal((int)company.id, (int)leader.companyId);
+});
+
+tp.Test("Remove division leader should return 200 or 204.", () =>
+{
+    int statusCode = tp.Responses["RemoveDivisionLeader"].StatusCode();
+
+    True(statusCode == 200 || statusCode == 204);
+});
+
+tp.Test("Delete division should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteDivision"].StatusCode());
+});
+
+tp.Test("Delete employee should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteEmployee"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

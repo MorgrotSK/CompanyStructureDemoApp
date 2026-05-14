@@ -1,0 +1,169 @@
+﻿--- TESTCASE Department Leader
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Leader Company {{DepartmentLeaderSuffix}}",
+  "code": "DPTRC{{DepartmentLeaderSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name SetupEmployee
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/employees
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "firstName": "Department",
+  "lastName": "Leader",
+  "phone": "+421 900 333 444",
+  "email": "department.leader.{{DepartmentLeaderSuffix}}@example.com"
+}
+
+###
+
+# @name SetupDivision
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Leader Division {{DepartmentLeaderSuffix}}",
+  "code": "DPTRD{{DepartmentLeaderSuffix}}"
+}
+
+###
+
+# @name SetupProject
+POST {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}/projects
+Content-Type: application/json
+
+{
+  "name": "TeaPie Department Leader Project {{DepartmentLeaderSuffix}}",
+  "code": "DPTRP{{DepartmentLeaderSuffix}}"
+}
+
+###
+
+# @name CreateDepartment
+POST {{ApiBaseUrl}}/api/projects/{{SetupProject.response.body.$.id}}/departments
+Content-Type: application/json
+
+{
+  "name": "TeaPie Leader Department {{DepartmentLeaderSuffix}}",
+  "code": "DPTRL{{DepartmentLeaderSuffix}}"
+}
+
+###
+
+# @name AssignDepartmentLeader
+PUT {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}/leader/{{SetupEmployee.response.body.$.id}}
+
+###
+
+# @name GetDepartmentLeader
+GET {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}/leader
+Accept: application/json
+
+###
+
+# @name RemoveDepartmentLeader
+DELETE {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}/leader
+
+###
+
+# @name DeleteDepartment
+DELETE {{ApiBaseUrl}}/api/departments/{{CreateDepartment.response.body.$.id}}
+
+###
+
+# @name DeleteProject
+DELETE {{ApiBaseUrl}}/api/projects/{{SetupProject.response.body.$.id}}
+
+###
+
+# @name DeleteDivision
+DELETE {{ApiBaseUrl}}/api/divisions/{{SetupDivision.response.body.$.id}}
+
+###
+
+# @name DeleteEmployee
+DELETE {{ApiBaseUrl}}/api/employees/{{SetupEmployee.response.body.$.id}}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DepartmentLeaderSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company, employee, division, project and department should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+    Equal(201, tp.Responses["SetupEmployee"].StatusCode());
+    Equal(201, tp.Responses["SetupDivision"].StatusCode());
+    Equal(201, tp.Responses["SetupProject"].StatusCode());
+    Equal(201, tp.Responses["CreateDepartment"].StatusCode());
+});
+
+tp.Test("Assign employee as department leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["AssignDepartmentLeader"].StatusCode());
+});
+
+tp.Test("Get department leader should return 200.", () =>
+{
+    Equal(200, tp.Responses["GetDepartmentLeader"].StatusCode());
+});
+
+tp.Test("Department leader should be the setup employee.", async () =>
+{
+    dynamic company = await tp.Responses["SetupCompany"].GetBodyAsExpandoAsync();
+    dynamic employee = await tp.Responses["SetupEmployee"].GetBodyAsExpandoAsync();
+    dynamic leader = await tp.Responses["GetDepartmentLeader"].GetBodyAsExpandoAsync();
+
+    Equal((int)employee.id, (int)leader.id);
+    Equal("Mr.", (string)leader.title);
+    Equal("Department", (string)leader.firstName);
+    Equal("Leader", (string)leader.lastName);
+    Equal("+421 900 333 444", (string)leader.phone);
+    Equal("department.leader." + tp.GetVariable<string>("DepartmentLeaderSuffix") + "@example.com", (string)leader.email);
+    Equal((int)company.id, (int)leader.companyId);
+});
+
+tp.Test("Remove department leader should return 200 or 204.", () =>
+{
+    int statusCode = tp.Responses["RemoveDepartmentLeader"].StatusCode();
+
+    True(statusCode == 200 || statusCode == 204);
+});
+
+tp.Test("Delete department should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteDepartment"].StatusCode());
+});
+
+tp.Test("Delete project should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteProject"].StatusCode());
+});
+
+tp.Test("Delete division should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteDivision"].StatusCode());
+});
+
+tp.Test("Delete employee should return 204.", () =>
+{
+    Equal(204, tp.Responses["DeleteEmployee"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

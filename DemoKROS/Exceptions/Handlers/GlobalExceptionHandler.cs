@@ -28,9 +28,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             error = exception.Message
         };
 
-        await httpContext.Response.WriteAsync(
-            JsonSerializer.Serialize(response),
-            cancellationToken);
+        await httpContext.Response.WriteAsync(JsonSerializer.Serialize(response), cancellationToken);
 
         return true;
     }

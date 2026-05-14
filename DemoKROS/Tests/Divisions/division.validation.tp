@@ -1,0 +1,61 @@
+﻿--- TESTCASE Division Validation
+--- HTTP
+# @name SetupCompany
+POST {{ApiBaseUrl}}/api/companies
+Content-Type: application/json
+
+{
+  "name": "TeaPie Division Validation Company {{DivisionValidationSuffix}}",
+  "code": "DVC{{DivisionValidationSuffix}}",
+  "leaderId": null
+}
+
+###
+
+# @name CreateDivisionMissingName
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "code": "DVM{{DivisionValidationSuffix}}"
+}
+
+###
+
+# @name CreateDivisionTooLongCode
+POST {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}/divisions
+Content-Type: application/json
+
+{
+  "name": "Invalid Division {{DivisionValidationSuffix}}",
+  "code": "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234"
+}
+
+###
+
+# @name CleanupCompany
+DELETE {{ApiBaseUrl}}/api/companies/{{SetupCompany.response.body.$.id}}
+
+--- TEST
+tp.SetVariable("DivisionValidationSuffix", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+tp.Test("Setup company should be created.", () =>
+{
+    Equal(201, tp.Responses["SetupCompany"].StatusCode());
+});
+
+tp.Test("Create division without name should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDivisionMissingName"].StatusCode());
+});
+
+tp.Test("Create division with too long code should fail.", () =>
+{
+    Equal(400, tp.Responses["CreateDivisionTooLongCode"].StatusCode());
+});
+
+tp.Test("Cleanup company should return 204.", () =>
+{
+    Equal(204, tp.Responses["CleanupCompany"].StatusCode());
+});
+--- END

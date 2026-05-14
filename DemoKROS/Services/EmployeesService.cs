@@ -29,7 +29,7 @@ public class EmployeesService(AppDbContext dbContext)
 
         EmployeeEntity employeeEntity = new()
         {
-            Title = request.Title,
+            Title = request.Title ?? String.Empty,
             FirstName = request.FirstName,
             LastName = request.LastName,
             Phone = request.Phone,
