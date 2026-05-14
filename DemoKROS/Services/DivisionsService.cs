@@ -1,11 +1,9 @@
 ﻿using DemoKROS.Data;
 using DemoKROS.DTO.Common;
-using DemoKROS.DTO.Company;
 using DemoKROS.DTO.Divisions;
 using DemoKROS.DTO.Employees;
 using DemoKROS.DTO.Projects;
 using DemoKROS.Entities;
-using DemoKROS.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace DemoKROS.Services;
@@ -14,30 +12,36 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
 {
     public async Task<List<DivisionResponse>> GetAllAsync()
     {
-        return await dbContext.Divisions.Select(d => new DivisionResponse(d.Id, d.Name, d.Code, d.CompanyId, d.LeaderId)).ToListAsync();
+        return await dbContext.Divisions.Select(d => d.ToResponse()).ToListAsync();
     }
 
-    public async Task<DivisionResponse?> GetByIdAsync(int id)
+    public async Task<ServiceResult<DivisionResponse>> GetByIdAsync(int id)
     {
         DivisionEntity? division = await dbContext.Divisions.FirstOrDefaultAsync(d => d.Id == id);
-        if (division == null) throw new NotFoundException("Division not found.");
-        return division.ToResponse();
+
+        if (division == null) return ServiceResult<DivisionResponse>.NotFound("Division not found.");
+
+        return ServiceResult<DivisionResponse>.Ok(division.ToResponse());
     }
     
-    public async Task<List<ProjectResponse>> GetDivisionProjectsAsync(int divisionId)
+    public async Task<ServiceResult<List<ProjectResponse>>> GetDivisionProjectsAsync(int divisionId)
     {
-        return await dbContext.Projects
-            .Where(p => p.DivisionId == divisionId)
-            .Select(p => new ProjectResponse(p.Id, p.Name, p.Code, p.DivisionId, p.LeaderId))
-            .ToListAsync();
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Divisions, divisionId))
+            return ServiceResult<List<ProjectResponse>>.NotFound("Division not found.");
+
+        var projects = await dbContext.Projects.Where(p => p.DivisionId == divisionId).Select(p => p.ToResponse()).ToListAsync();
+
+        return ServiceResult<List<ProjectResponse>>.Ok(projects);
     }
 
-    public async Task<DivisionResponse> CreateAsync(CreateDivisionRequest request, int companyId)
+    public async Task<ServiceResult<DivisionResponse>> CreateAsync(CreateDivisionRequest request, int companyId)
     {
-        await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Companies, companyId);
-        
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Companies, companyId))
+            return ServiceResult<DivisionResponse>.NotFound("Company not found.");
+
         bool codeExists = await dbContext.Divisions.AnyAsync(d => d.CompanyId == companyId && d.Code == request.Code);
-        if (codeExists) throw new ValidationException("Division code already exists for the company.");
+
+        if (codeExists) return ServiceResult<DivisionResponse>.BadRequest("Division code already exists for the company.");
 
         DivisionEntity divisionEntity = new()
         {
@@ -47,55 +51,69 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
         };
 
         dbContext.Divisions.Add(divisionEntity);
-
         await dbContext.SaveChangesAsync();
 
         if (request.LeaderId is not null)
         {
-            divisionEntity = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionEntity.Id, request.LeaderId.Value);
+            var leaderResult = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionEntity.Id, request.LeaderId.Value);
 
+            if (!leaderResult.Success)
+                return new ServiceResult<DivisionResponse> { Success = false, Error = leaderResult.Error, StatusCode = leaderResult.StatusCode };
+
+            divisionEntity = leaderResult.Data!;
         }
 
-        return divisionEntity.ToResponse();
+        return ServiceResult<DivisionResponse>.Ok(divisionEntity.ToResponse());
     }
 
-    public async Task DeleteAsync(int divisionId)
-    {
-        var division = await dbContext.Divisions.FirstOrDefaultAsync(d => d.Id == divisionId);
-        if (division == null) throw new NotFoundException("Division not found.");
-        dbContext.Divisions.Remove(division);
-        await dbContext.SaveChangesAsync();
-    }
-    
-    public async Task<DivisionResponse> UpdateAsync(int divisionId, UpdateOrganizationNodeRequest request)
+    public async Task<ServiceResult> DeleteAsync(int divisionId)
     {
         DivisionEntity? division = await dbContext.Divisions.FirstOrDefaultAsync(d => d.Id == divisionId);
-        if (division == null) throw new NotFoundException("Division not found.");
 
-        division = await organizationNodeService.UpdateAsync(
-            dbContext.Divisions,
-            dbContext.Divisions.Where(d => d.CompanyId == division.CompanyId),
-            divisionId,
-            request
-        );
+        if (division == null) return ServiceResult.NotFound("Division not found.");
 
-        return division.ToResponse();
+        dbContext.Divisions.Remove(division);
+        await dbContext.SaveChangesAsync();
+
+        return ServiceResult.Ok();
     }
     
-    public async Task<EmployeeResponse> GetLeaderAsync(int divisionId)
+    public async Task<ServiceResult<DivisionResponse>> UpdateAsync(int divisionId, UpdateOrganizationNodeRequest request)
+    {
+        DivisionEntity? division = await dbContext.Divisions.FirstOrDefaultAsync(d => d.Id == divisionId);
+
+        if (division == null) return ServiceResult<DivisionResponse>.NotFound("Division not found.");
+
+        var result = await organizationNodeService.UpdateAsync(dbContext.Divisions, dbContext.Divisions.Where(d => d.CompanyId == division.CompanyId), divisionId, request);
+
+        if (!result.Success)
+            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
+    }
+    
+    public async Task<ServiceResult<EmployeeResponse>> GetLeaderAsync(int divisionId)
     {
         return await organizationNodeService.GetLeaderAsync(dbContext.Divisions, divisionId);
     }
 
-    public async Task<DivisionResponse> SetLeaderAsync(int divisionId, int leaderId)
+    public async Task<ServiceResult<DivisionResponse>> SetLeaderAsync(int divisionId, int leaderId)
     {
-        DivisionEntity divisionEntity = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionId, leaderId);
-        return divisionEntity.ToResponse();
+        var result = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionId, leaderId);
+
+        if (!result.Success)
+            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
     }
 
-    public async Task<DivisionResponse> RemoveLeaderAsync(int divisionId)
+    public async Task<ServiceResult<DivisionResponse>> RemoveLeaderAsync(int divisionId)
     {
-        DivisionEntity divisionEntity = await organizationNodeService.RemoveLeaderAsync(dbContext.Divisions, divisionId);
-        return divisionEntity.ToResponse();
+        var result = await organizationNodeService.RemoveLeaderAsync(dbContext.Divisions, divisionId);
+
+        if (!result.Success)
+            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
     }
 }

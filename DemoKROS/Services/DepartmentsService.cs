@@ -1,13 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-using DemoKROS.Data;
+﻿using DemoKROS.Data;
 using DemoKROS.DTO.Common;
-using DemoKROS.DTO.Company;
 using DemoKROS.DTO.Departments;
 using DemoKROS.DTO.Employees;
 using DemoKROS.Entities;
-using DemoKROS.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using ValidationException = DemoKROS.Exceptions.ValidationException;
 
 namespace DemoKROS.Services;
 
@@ -18,27 +14,23 @@ public class DepartmentsService(AppDbContext dbContext, OrganizationNodeService 
         return await dbContext.Departments.Select(d => d.ToResponse()).ToListAsync();
     }
     
-    public async Task<DepartmentResponse> GetByIdAsync(int id)
+    public async Task<ServiceResult<DepartmentResponse>> GetByIdAsync(int id)
     {
         DepartmentEntity? department = await dbContext.Departments.FirstOrDefaultAsync(d => d.Id == id);
 
-        if (department == null)
-        {
-            throw new NotFoundException("Department not found.");
-        }
+        if (department == null) return ServiceResult<DepartmentResponse>.NotFound("Department not found.");
 
-        return department.ToResponse();
+        return ServiceResult<DepartmentResponse>.Ok(department.ToResponse());
     }
     
-    public async Task<DepartmentResponse> CreateAsync(CreateDepartmentRequest request, int projectId) {
-        await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Projects, projectId);
+    public async Task<ServiceResult<DepartmentResponse>> CreateAsync(CreateDepartmentRequest request, int projectId)
+    {
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Projects, projectId))
+            return ServiceResult<DepartmentResponse>.NotFound("Project not found.");
 
         bool codeExists = await dbContext.Departments.AnyAsync(d => d.ProjectId == projectId && d.Code == request.Code);
 
-        if (codeExists)
-        {
-            throw new ValidationException("Department code already exists for the project.");
-        }
+        if (codeExists) return ServiceResult<DepartmentResponse>.BadRequest("Department code already exists for the project.");
 
         DepartmentEntity departmentEntity = new()
         {
@@ -48,59 +40,69 @@ public class DepartmentsService(AppDbContext dbContext, OrganizationNodeService 
         };
 
         dbContext.Departments.Add(departmentEntity);
-
         await dbContext.SaveChangesAsync();
         
         if (request.LeaderId is not null)
         {
-            departmentEntity = await organizationNodeService.SetLeaderAsync(dbContext.Departments, departmentEntity.Id, request.LeaderId.Value);
+            var leaderResult = await organizationNodeService.SetLeaderAsync(dbContext.Departments, departmentEntity.Id, request.LeaderId.Value);
 
+            if (!leaderResult.Success)
+                return new ServiceResult<DepartmentResponse> { Success = false, Error = leaderResult.Error, StatusCode = leaderResult.StatusCode };
+
+            departmentEntity = leaderResult.Data!;
         }
 
-        return departmentEntity.ToResponse();
+        return ServiceResult<DepartmentResponse>.Ok(departmentEntity.ToResponse());
     }
     
-    public async Task<DepartmentResponse> UpdateAsync(int departmentId, UpdateOrganizationNodeRequest request)
-    {
-        DepartmentEntity? department = await dbContext.Departments.FirstOrDefaultAsync(d => d.Id == departmentId);
-        if (department == null) throw new NotFoundException("Department not found.");
-
-        var department1 = department;
-        department = await organizationNodeService.UpdateAsync(
-            dbContext.Departments,
-            dbContext.Departments.Where(d => d.ProjectId == department1.ProjectId),
-            departmentId,
-            request
-        );
-
-        return department.ToResponse();
-    }
-    
-    public async Task DeleteAsync(int departmentId)
+    public async Task<ServiceResult<DepartmentResponse>> UpdateAsync(int departmentId, UpdateOrganizationNodeRequest request)
     {
         DepartmentEntity? department = await dbContext.Departments.FirstOrDefaultAsync(d => d.Id == departmentId);
 
-        if (department == null) throw new NotFoundException("Department not found.");
+        if (department == null) return ServiceResult<DepartmentResponse>.NotFound("Department not found.");
+
+        var result = await organizationNodeService.UpdateAsync(dbContext.Departments, dbContext.Departments.Where(d => d.ProjectId == department.ProjectId), departmentId, request);
+
+        if (!result.Success)
+            return new ServiceResult<DepartmentResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DepartmentResponse>.Ok(result.Data!.ToResponse());
+    }
+    
+    public async Task<ServiceResult> DeleteAsync(int departmentId)
+    {
+        DepartmentEntity? department = await dbContext.Departments.FirstOrDefaultAsync(d => d.Id == departmentId);
+
+        if (department == null) return ServiceResult.NotFound("Department not found.");
 
         dbContext.Departments.Remove(department);
-
         await dbContext.SaveChangesAsync();
+
+        return ServiceResult.Ok();
     }
     
-    public async Task<EmployeeResponse> GetLeaderAsync(int departmentId)
+    public async Task<ServiceResult<EmployeeResponse>> GetLeaderAsync(int departmentId)
     {
         return await organizationNodeService.GetLeaderAsync(dbContext.Departments, departmentId);
     }
 
-    public async Task<DepartmentResponse> SetLeaderAsync(int departmentId, int leaderId)
+    public async Task<ServiceResult<DepartmentResponse>> SetLeaderAsync(int departmentId, int leaderId)
     {
-        DepartmentEntity departmentEntity = await organizationNodeService.SetLeaderAsync(dbContext.Departments, departmentId, leaderId);
-        return departmentEntity.ToResponse();
+        var result = await organizationNodeService.SetLeaderAsync(dbContext.Departments, departmentId, leaderId);
+
+        if (!result.Success)
+            return new ServiceResult<DepartmentResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DepartmentResponse>.Ok(result.Data!.ToResponse());
     }
 
-    public async Task<DepartmentResponse> RemoveLeaderAsync(int departmentId)
+    public async Task<ServiceResult<DepartmentResponse>> RemoveLeaderAsync(int departmentId)
     {
-        DepartmentEntity departmentEntity = await organizationNodeService.RemoveLeaderAsync(dbContext.Departments, departmentId);
-        return departmentEntity.ToResponse();
+        var result = await organizationNodeService.RemoveLeaderAsync(dbContext.Departments, departmentId);
+
+        if (!result.Success)
+            return new ServiceResult<DepartmentResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<DepartmentResponse>.Ok(result.Data!.ToResponse());
     }
 }

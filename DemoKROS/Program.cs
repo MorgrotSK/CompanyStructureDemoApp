@@ -1,5 +1,4 @@
 using DemoKROS.Data;
-using DemoKROS.Handlers;
 using DemoKROS.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -18,7 +17,6 @@ builder.Services.AddScoped<DivisionsService>();
 builder.Services.AddScoped<EmployeesService>();
 builder.Services.AddScoped<ProjectsService>();
 builder.Services.AddScoped<DepartmentsService>();
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 

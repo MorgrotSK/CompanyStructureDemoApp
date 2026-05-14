@@ -1,7 +1,7 @@
 ﻿using DemoKROS.Data;
+using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Employees;
 using DemoKROS.Entities;
-using DemoKROS.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace DemoKROS.Services;
@@ -13,19 +13,19 @@ public class EmployeesService(AppDbContext dbContext)
         return await dbContext.Employees.Select(e => e.ToResponse()).ToListAsync();
     }
 
-    public async Task<EmployeeResponse> GetByIdAsync(int id)
+    public async Task<ServiceResult<EmployeeResponse>> GetByIdAsync(int id)
     {
         EmployeeEntity? employee = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
-        if (employee == null)
-            throw new NotFoundException("Employee not found.");
+        if (employee == null) return ServiceResult<EmployeeResponse>.NotFound("Employee not found.");
 
-        return employee.ToResponse();
+        return ServiceResult<EmployeeResponse>.Ok(employee.ToResponse());
     }
 
-    public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request, int companyId)
+    public async Task<ServiceResult<EmployeeResponse>> CreateAsync(CreateEmployeeRequest request, int companyId)
     {
-        await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Companies, companyId);
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Companies, companyId))
+            return ServiceResult<EmployeeResponse>.NotFound("Company not found.");
 
         EmployeeEntity employeeEntity = new()
         {
@@ -38,42 +38,40 @@ public class EmployeesService(AppDbContext dbContext)
         };
 
         dbContext.Employees.Add(employeeEntity);
-
         await dbContext.SaveChangesAsync();
 
-        return employeeEntity.ToResponse();
+        return ServiceResult<EmployeeResponse>.Ok(employeeEntity.ToResponse());
     }
     
-    public async Task<EmployeeResponse> UpdateAsync(int employeeId, UpdateEmployeeRequest request)
+    public async Task<ServiceResult<EmployeeResponse>> UpdateAsync(int employeeId, UpdateEmployeeRequest request)
     {
         EmployeeEntity? employee = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
 
-        if (employee == null)
-            throw new NotFoundException("Employee not found.");
+        if (employee == null) return ServiceResult<EmployeeResponse>.NotFound("Employee not found.");
 
         if (request.Title != null) employee.Title = request.Title;
-
         if (request.FirstName != null) employee.FirstName = request.FirstName;
-
         if (request.LastName != null) employee.LastName = request.LastName;
-
         if (request.Phone != null) employee.Phone = request.Phone;
-
         if (request.Email != null) employee.Email = request.Email;
 
         await dbContext.SaveChangesAsync();
 
-        return employee.ToResponse();
+        return ServiceResult<EmployeeResponse>.Ok(employee.ToResponse());
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<ServiceResult> DeleteAsync(int id)
     {
         EmployeeEntity? employee = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == id);
 
-        if (employee == null) throw new NotFoundException("Employee not found.");
+        if (employee == null) return ServiceResult.NotFound("Employee not found.");
+
+        if (await DbValidationHelpers.EmployeeIsLeaderAsync(dbContext, id))
+            return ServiceResult.BadRequest("Employee cannot be deleted because they are assigned as a leader.");
 
         dbContext.Employees.Remove(employee);
-
         await dbContext.SaveChangesAsync();
+
+        return ServiceResult.Ok();
     }
 }

@@ -25,8 +25,11 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectResponse>> GetById(int projectId)
     {
-        var project = await projectsService.GetByIdAsync(projectId);
-        return Ok(project);
+        var result = await projectsService.GetByIdAsync(projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpGet(ApiRoutes.ProjectsRoutes.Departments)]
@@ -34,8 +37,11 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<DepartmentResponse>>> GetProjectDepartments(int projectId)
     {
-        var departments = await projectsService.GetProjectDepartmentsAsync(projectId);
-        return Ok(departments);
+        var result = await projectsService.GetProjectDepartmentsAsync(projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPost(ApiRoutes.ProjectsRoutes.Departments)]
@@ -44,8 +50,12 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DepartmentResponse>> Create(int projectId, CreateDepartmentRequest request)
     {
-        var department = await departmentsService.CreateAsync(request, projectId);
-        return CreatedAtRoute(ApiRoutes.RouteNames.GetDepartmentById, new { departmentId = department.Id }, department);    }
+        var result = await departmentsService.CreateAsync(request, projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return CreatedAtRoute(ApiRoutes.RouteNames.GetDepartmentById, new { departmentId = result.Data!.Id }, result.Data);
+    }
 
     [HttpPatch(ApiRoutes.ProjectsRoutes.ById)]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
@@ -53,8 +63,11 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProjectResponse>> Update(int projectId, UpdateOrganizationNodeRequest request)
     {
-        var project = await projectsService.UpdateAsync(projectId, request);
-        return Ok(project);
+        var result = await projectsService.UpdateAsync(projectId, request);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.ProjectsRoutes.ById)]
@@ -62,7 +75,10 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int projectId)
     {
-        await projectsService.DeleteAsync(projectId);
+        var result = await projectsService.DeleteAsync(projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
         return NoContent();
     }
 
@@ -71,8 +87,11 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeResponse>> GetLeader(int projectId)
     {
-        var leader = await projectsService.GetLeaderAsync(projectId);
-        return Ok(leader);
+        var result = await projectsService.GetLeaderAsync(projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPut(ApiRoutes.ProjectsRoutes.LeaderById)]
@@ -81,8 +100,11 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProjectResponse>> SetLeader(int projectId, int leaderId)
     {
-        var project = await projectsService.SetLeaderAsync(projectId, leaderId);
-        return Ok(project);
+        var result = await projectsService.SetLeaderAsync(projectId, leaderId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.ProjectsRoutes.Leader)]
@@ -90,7 +112,10 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectResponse>> RemoveLeader(int projectId)
     {
-        var project = await projectsService.RemoveLeaderAsync(projectId);
-        return Ok(project);
+        var result = await projectsService.RemoveLeaderAsync(projectId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 }

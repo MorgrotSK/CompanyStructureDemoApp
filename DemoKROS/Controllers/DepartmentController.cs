@@ -24,8 +24,11 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DepartmentResponse>> GetById(int departmentId)
     {
-        var department = await departmentsService.GetByIdAsync(departmentId);
-        return Ok(department);
+        var result = await departmentsService.GetByIdAsync(departmentId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPatch(ApiRoutes.DepartmentsRoutes.ById)]
@@ -34,8 +37,11 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DepartmentResponse>> Update(int departmentId, UpdateOrganizationNodeRequest request)
     {
-        var department = await departmentsService.UpdateAsync(departmentId, request);
-        return Ok(department);
+        var result = await departmentsService.UpdateAsync(departmentId, request);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.DepartmentsRoutes.ById)]
@@ -43,7 +49,10 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int departmentId)
     {
-        await departmentsService.DeleteAsync(departmentId);
+        var result = await departmentsService.DeleteAsync(departmentId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
         return NoContent();
     }
 
@@ -52,8 +61,11 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeResponse>> GetLeader(int departmentId)
     {
-        var leader = await departmentsService.GetLeaderAsync(departmentId);
-        return Ok(leader);
+        var result = await departmentsService.GetLeaderAsync(departmentId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPut(ApiRoutes.DepartmentsRoutes.LeaderById)]
@@ -62,8 +74,11 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DepartmentResponse>> SetLeader(int departmentId, int leaderId)
     {
-        var department = await departmentsService.SetLeaderAsync(departmentId, leaderId);
-        return Ok(department);
+        var result = await departmentsService.SetLeaderAsync(departmentId, leaderId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.DepartmentsRoutes.Leader)]
@@ -71,7 +86,10 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DepartmentResponse>> RemoveLeader(int departmentId)
     {
-        var department = await departmentsService.RemoveLeaderAsync(departmentId);
-        return Ok(department);
+        var result = await departmentsService.RemoveLeaderAsync(departmentId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 }

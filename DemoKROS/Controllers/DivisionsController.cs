@@ -13,6 +13,7 @@ namespace DemoKROS.Controllers;
 public class DivisionsController(DivisionsService divisionsService, ProjectsService projectsService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<DivisionResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<DivisionResponse>>> GetAll()
     {
         var divisions = await divisionsService.GetAllAsync();
@@ -24,8 +25,11 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DivisionResponse>> GetById(int divisionId)
     {
-        var division = await divisionsService.GetByIdAsync(divisionId);
-        return Ok(division);
+        var result = await divisionsService.GetByIdAsync(divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpGet(ApiRoutes.DivisionsRoutes.Projects)]
@@ -33,8 +37,11 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<ProjectResponse>>> GetDivisionProjects(int divisionId)
     {
-        var projects = await divisionsService.GetDivisionProjectsAsync(divisionId);
-        return Ok(projects);
+        var result = await divisionsService.GetDivisionProjectsAsync(divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPost(ApiRoutes.DivisionsRoutes.Projects)]
@@ -43,8 +50,12 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProjectResponse>> CreateNewDivisionProject(int divisionId, CreateProjectRequest request)
     {
-        var project = await projectsService.CreateAsync(request, divisionId);
-        return CreatedAtRoute(ApiRoutes.RouteNames.GetProjectById, new { projectId = project.Id }, project);    }
+        var result = await projectsService.CreateAsync(request, divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return CreatedAtRoute(ApiRoutes.RouteNames.GetProjectById, new { projectId = result.Data!.Id }, result.Data);
+    }
 
     [HttpPatch(ApiRoutes.DivisionsRoutes.ById)]
     [ProducesResponseType(typeof(DivisionResponse), StatusCodes.Status200OK)]
@@ -52,8 +63,11 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DivisionResponse>> Update(int divisionId, UpdateOrganizationNodeRequest request)
     {
-        var division = await divisionsService.UpdateAsync(divisionId, request);
-        return Ok(division);
+        var result = await divisionsService.UpdateAsync(divisionId, request);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.DivisionsRoutes.ById)]
@@ -61,7 +75,10 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int divisionId)
     {
-        await divisionsService.DeleteAsync(divisionId);
+        var result = await divisionsService.DeleteAsync(divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
         return NoContent();
     }
 
@@ -70,8 +87,11 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeResponse>> GetLeader(int divisionId)
     {
-        var leader = await divisionsService.GetLeaderAsync(divisionId);
-        return Ok(leader);
+        var result = await divisionsService.GetLeaderAsync(divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpPut(ApiRoutes.DivisionsRoutes.LeaderById)]
@@ -80,8 +100,11 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DivisionResponse>> SetLeader(int divisionId, int leaderId)
     {
-        var division = await divisionsService.SetLeaderAsync(divisionId, leaderId);
-        return Ok(division);
+        var result = await divisionsService.SetLeaderAsync(divisionId, leaderId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 
     [HttpDelete(ApiRoutes.DivisionsRoutes.Leader)]
@@ -89,7 +112,10 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DivisionResponse>> RemoveLeader(int divisionId)
     {
-        var division = await divisionsService.RemoveLeaderAsync(divisionId);
-        return Ok(division);
+        var result = await divisionsService.RemoveLeaderAsync(divisionId);
+
+        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+
+        return Ok(result.Data);
     }
 }

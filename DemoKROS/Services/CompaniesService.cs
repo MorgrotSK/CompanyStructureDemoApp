@@ -4,10 +4,9 @@ using DemoKROS.DTO.Company;
 using DemoKROS.DTO.Divisions;
 using DemoKROS.DTO.Employees;
 using DemoKROS.Entities;
-using DemoKROS.Exceptions;
 using Microsoft.EntityFrameworkCore;
-namespace DemoKROS.Services;
 
+namespace DemoKROS.Services;
 
 public class CompaniesService(AppDbContext dbContext, OrganizationNodeService organizationNodeService)
 {
@@ -16,43 +15,50 @@ public class CompaniesService(AppDbContext dbContext, OrganizationNodeService or
         return await dbContext.Companies.Select(c => c.ToResponse()).ToListAsync();
     }
 
-    public async Task<CompanyResponse> GetByIdAsync(int id)
+    public async Task<ServiceResult<CompanyResponse>> GetByIdAsync(int id)
     {
         CompanyEntity? company = await dbContext.Companies.FirstOrDefaultAsync(c => c.Id == id);
-        if (company == null) throw new NotFoundException("Company not found.");
-        return company.ToResponse();
+
+        if (company == null) return ServiceResult<CompanyResponse>.NotFound("Company not found.");
+
+        return ServiceResult<CompanyResponse>.Ok(company.ToResponse());
     }
     
-    public async Task<List<EmployeeResponse>> GetEmployeesAsync(int companyId)
+    public async Task<ServiceResult<List<EmployeeResponse>>> GetEmployeesAsync(int companyId)
     {
-        await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Companies, companyId);
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Companies, companyId))
+            return ServiceResult<List<EmployeeResponse>>.NotFound("Company not found.");
 
-        return await dbContext.Employees
-            .Where(e => e.CompanyId == companyId)
-            .Select(e => e.ToResponse())
-            .ToListAsync();
+        var employees = await dbContext.Employees.Where(e => e.CompanyId == companyId).Select(e => e.ToResponse()).ToListAsync();
+
+        return ServiceResult<List<EmployeeResponse>>.Ok(employees);
     }
     
-    public async Task<List<DivisionResponse>> GetDivisionsAsync(int companyId)
+    public async Task<ServiceResult<List<DivisionResponse>>> GetDivisionsAsync(int companyId)
     {
-        await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Companies, companyId);
+        if (!await DbValidationHelpers.EntityExistsAsync(dbContext.Companies, companyId))
+            return ServiceResult<List<DivisionResponse>>.NotFound("Company not found.");
 
-        return await dbContext.Divisions
-            .Where(d => d.CompanyId == companyId)
-            .Select(d => d.ToResponse())
-            .ToListAsync();
+        var divisions = await dbContext.Divisions.Where(d => d.CompanyId == companyId).Select(d => d.ToResponse()).ToListAsync();
+
+        return ServiceResult<List<DivisionResponse>>.Ok(divisions);
     }
 
-    public async Task<CompanyResponse> UpdateAsync(int companyId, UpdateOrganizationNodeRequest request)
+    public async Task<ServiceResult<CompanyResponse>> UpdateAsync(int companyId, UpdateOrganizationNodeRequest request)
     {
-        CompanyEntity companyEntity = await organizationNodeService.UpdateAsync(dbContext.Companies, dbContext.Companies, companyId, request);
-        return companyEntity.ToResponse();
+        var result = await organizationNodeService.UpdateAsync(dbContext.Companies, dbContext.Companies, companyId, request);
+
+        if (!result.Success)
+            return new ServiceResult<CompanyResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<CompanyResponse>.Ok(result.Data!.ToResponse());
     }
 
-    public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request)
+    public async Task<ServiceResult<CompanyResponse>> CreateAsync(CreateCompanyRequest request)
     {
         bool codeExists = await dbContext.Companies.AnyAsync(c => c.Code == request.Code);
-        if (codeExists) throw new ValidationException("Company code already exists.");
+
+        if (codeExists) return ServiceResult<CompanyResponse>.BadRequest("Company code already exists.");
 
         CompanyEntity companyEntity = new()
         {
@@ -61,35 +67,45 @@ public class CompaniesService(AppDbContext dbContext, OrganizationNodeService or
         };
 
         dbContext.Companies.Add(companyEntity);
-
         await dbContext.SaveChangesAsync();
 
-        return companyEntity.ToResponse();
+        return ServiceResult<CompanyResponse>.Ok(companyEntity.ToResponse());
     }
     
-    public async Task DeleteAsync(int companyId)
+    public async Task<ServiceResult> DeleteAsync(int companyId)
     {
         CompanyEntity? company = await dbContext.Companies.FirstOrDefaultAsync(c => c.Id == companyId);
-        if (company == null) throw new NotFoundException("Company not found.");
+
+        if (company == null) return ServiceResult.NotFound("Company not found.");
 
         dbContext.Companies.Remove(company);
         await dbContext.SaveChangesAsync();
+
+        return ServiceResult.Ok();
     }
     
-    public async Task<EmployeeResponse> GetLeaderAsync(int companyId)
+    public async Task<ServiceResult<EmployeeResponse>> GetLeaderAsync(int companyId)
     {
         return await organizationNodeService.GetLeaderAsync(dbContext.Companies, companyId);
     }
     
-    public async Task<CompanyResponse> SetLeaderAsync(int companyId, int leaderId)
+    public async Task<ServiceResult<CompanyResponse>> SetLeaderAsync(int companyId, int leaderId)
     {
-        CompanyEntity companyEntity = await organizationNodeService.SetLeaderAsync(dbContext.Companies, companyId, leaderId);
-        return companyEntity.ToResponse();
+        var result = await organizationNodeService.SetLeaderAsync(dbContext.Companies, companyId, leaderId);
+
+        if (!result.Success)
+            return new ServiceResult<CompanyResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<CompanyResponse>.Ok(result.Data!.ToResponse());
     }
 
-    public async Task<CompanyResponse> RemoveLeaderAsync(int companyId)
+    public async Task<ServiceResult<CompanyResponse>> RemoveLeaderAsync(int companyId)
     {
-        CompanyEntity companyEntity = await organizationNodeService.RemoveLeaderAsync(dbContext.Companies, companyId);
-        return companyEntity.ToResponse();
+        var result = await organizationNodeService.RemoveLeaderAsync(dbContext.Companies, companyId);
+
+        if (!result.Success)
+            return new ServiceResult<CompanyResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+
+        return ServiceResult<CompanyResponse>.Ok(result.Data!.ToResponse());
     }
 }
