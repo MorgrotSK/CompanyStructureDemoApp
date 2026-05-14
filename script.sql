@@ -88,6 +88,23 @@ ALTER TABLE [Companies] ADD CONSTRAINT [FK_Companies_Employees_LeaderId] FOREIGN
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20260513134815_InitialCreate', N'9.0.15');
 
+ALTER TABLE [Divisions] DROP CONSTRAINT [FK_Divisions_Companies_CompanyEntityId];
+
+DROP INDEX [IX_Divisions_CompanyEntityId] ON [Divisions];
+
+DECLARE @var sysname;
+SELECT @var = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Divisions]') AND [c].[name] = N'CompanyEntityId');
+IF @var IS NOT NULL EXEC(N'ALTER TABLE [Divisions] DROP CONSTRAINT [' + @var + '];');
+ALTER TABLE [Divisions] DROP COLUMN [CompanyEntityId];
+
+ALTER TABLE [Divisions] ADD CONSTRAINT [FK_Divisions_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([Id]) ON DELETE CASCADE;
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260513230636_FixDivisionCompanyRelation', N'9.0.15');
+
 COMMIT;
 GO
 

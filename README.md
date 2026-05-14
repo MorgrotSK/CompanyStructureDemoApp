@@ -16,7 +16,13 @@ REST API for managing hierarchical company organizational structures.
 
 ## Setup
 
-### 1. Configure database connection
+### 1. Restore dependencies
+
+```bash
+dotnet restore
+```
+
+### 2. Configure database connection
 
 Edit `appsettings.json`:
 
@@ -26,9 +32,9 @@ Edit `appsettings.json`:
 }
 ```
 
-### 2. Create database
+### 3. Create database
 
-Execute the provided `script.sql` script on the database configured in `appsettings.json` connection string.
+Execute the provided `script.sql` script on the database configured in the `appsettings.json` connection string.
 
 Alternative using Entity Framework migrations:
 
@@ -65,5 +71,6 @@ https://localhost:xxxx/scalar
 ```
 
 ## Notes
+
 - DTO validation is implemented using data annotations.
 - Global exception handling is implemented using `IExceptionHandler`.
