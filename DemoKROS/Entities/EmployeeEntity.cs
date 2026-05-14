@@ -21,7 +21,7 @@ public class EmployeeEntity
     
     [ForeignKey(nameof(CompanyEntity))]
     public int CompanyId { get; set; }
-    public CompanyEntity CompanyEntity { get; set; } = null!;
+    public virtual CompanyEntity CompanyEntity { get; set; } = null!;
     
     public EmployeeResponse ToResponse()
     {

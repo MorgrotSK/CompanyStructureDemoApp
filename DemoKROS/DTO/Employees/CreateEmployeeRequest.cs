@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using DemoKROS.Constants;
 
 namespace DemoKROS.DTO.Employees;
 
@@ -8,11 +9,13 @@ public class CreateEmployeeRequest
     [MaxLength(30)] public string? Title { get; set; } = "";
 
     [Required]
-    [MaxLength(50)]
+    [StringLength(50, MinimumLength = 2)]
+    [RegularExpression(ValidationPatterns.PersonName)]
     public string FirstName { get; set; } = "";
 
     [Required]
-    [MaxLength(50)]
+    [StringLength(50, MinimumLength = 2)]
+    [RegularExpression(ValidationPatterns.PersonName)]
     public string LastName { get; set; } = "";
 
     [Required]

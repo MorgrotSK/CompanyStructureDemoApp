@@ -59,7 +59,6 @@ public class CompaniesService(AppDbContext dbContext, OrganizationNodeService or
         {
             Name = request.Name,
             Code = request.Code,
-            LeaderId = request.LeaderId
         };
 
         dbContext.Companies.Add(companyEntity);

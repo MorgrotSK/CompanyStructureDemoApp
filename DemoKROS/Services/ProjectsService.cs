@@ -58,13 +58,18 @@ public class ProjectsService(AppDbContext dbContext, OrganizationNodeService org
         {
             Name = request.Name,
             Code = request.Code,
-            LeaderId = request.LeaderId,
             DivisionId = divisionId
         };
 
         dbContext.Projects.Add(projectEntity);
 
         await dbContext.SaveChangesAsync();
+        
+        if (request.LeaderId is not null)
+        {
+            projectEntity = await organizationNodeService.SetLeaderAsync(dbContext.Projects, projectEntity.Id, request.LeaderId.Value);
+
+        }
 
         return projectEntity.ToResponse();
     }

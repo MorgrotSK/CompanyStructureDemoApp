@@ -7,9 +7,9 @@ namespace DemoKROS.Entities;
 [Table("Companies")]
 public class CompanyEntity : OrganizationNodeEntity
 {
-    public List<EmployeeEntity> Employees { get; set; } = new();
+    public virtual List<EmployeeEntity> Employees { get; set; } = new();
 
-    public List<DivisionEntity> Divisions { get; set; } = new();
+    public virtual List<DivisionEntity> Divisions { get; set; } = new();
     
     public CompanyResponse ToResponse()
     {

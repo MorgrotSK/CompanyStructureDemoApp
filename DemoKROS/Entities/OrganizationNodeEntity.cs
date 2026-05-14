@@ -18,5 +18,23 @@ public abstract class OrganizationNodeEntity
 
     [ForeignKey(nameof(EmployeeEntity))]
     public int? LeaderId { get; set; }
-    public EmployeeEntity? Leader { get; set; }
+    public virtual EmployeeEntity? Leader { get; set; }
+    
+    [NotMapped]
+    public virtual OrganizationNodeEntity? ParentNode => null;
+
+    public CompanyEntity? GetCompany()
+    {
+        OrganizationNodeEntity? current = this;
+
+        while (current is not null)
+        {
+            if (current is CompanyEntity company)
+                return company;
+
+            current = current.ParentNode;
+        }
+
+        return null;
+    }
 }

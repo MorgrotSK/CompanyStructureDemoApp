@@ -10,7 +10,10 @@ public class DepartmentEntity : OrganizationNodeEntity
 {
     [ForeignKey(nameof(ProjectEntity))]
     public int ProjectId { get; set; }
-    public ProjectEntity ProjectEntity { get; set; } = null!;
+    public virtual ProjectEntity ProjectEntity { get; set; } = null!;
+    
+    [NotMapped]
+    public override OrganizationNodeEntity? ParentNode => ProjectEntity;
     
     public DepartmentResponse ToResponse()
     {

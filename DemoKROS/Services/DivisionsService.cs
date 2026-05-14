@@ -43,13 +43,18 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
         {
             Name = request.Name,
             Code = request.Code,
-            LeaderId = request.LeaderId,
             CompanyId = companyId
         };
 
         dbContext.Divisions.Add(divisionEntity);
 
         await dbContext.SaveChangesAsync();
+
+        if (request.LeaderId is not null)
+        {
+            divisionEntity = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionEntity.Id, request.LeaderId.Value);
+
+        }
 
         return divisionEntity.ToResponse();
     }

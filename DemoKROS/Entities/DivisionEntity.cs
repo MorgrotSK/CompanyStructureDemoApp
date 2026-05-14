@@ -10,9 +10,12 @@ public class DivisionEntity : OrganizationNodeEntity
     [ForeignKey(nameof(CompanyEntity))]
     public int CompanyId { get; set; }
 
-    public CompanyEntity CompanyEntity { get; set; } = null!;
+    public virtual CompanyEntity CompanyEntity { get; set; } = null!;
 
-    public List<ProjectEntity> Projects { get; set; } = new();
+    public virtual List<ProjectEntity> Projects { get; set; } = new();
+    
+    [NotMapped]
+    public override OrganizationNodeEntity? ParentNode => CompanyEntity;
     
     public DivisionResponse ToResponse()
     {

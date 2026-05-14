@@ -10,8 +10,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<OrganizationNodeService>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseLazyLoadingProxies()
+        .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));builder.Services.AddScoped<OrganizationNodeService>();
 builder.Services.AddScoped<CompaniesService>();
 builder.Services.AddScoped<DivisionsService>();
 builder.Services.AddScoped<EmployeesService>();

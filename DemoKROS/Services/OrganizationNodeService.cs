@@ -55,6 +55,15 @@ public class OrganizationNodeService(AppDbContext dbContext)
         if (entity == null) throw new NotFoundException($"{typeof(TEntity).Name} not found.");
 
         await DbValidationHelpers.EnsureEntityExistsAsync(dbContext.Employees, leaderId);
+        
+        CompanyEntity company = entity.GetCompany() ?? throw new Exception("Could not resolve company hierarchy.");
+
+        bool isCompanyEmployee = company.Employees.Any(e => e.Id == leaderId);
+        
+        Console.WriteLine($"Company test: {company.Name} {isCompanyEmployee} {leaderId} {company.Employees.Count()}");
+
+
+        if (!isCompanyEmployee) throw new ValidationException("Leader must be an employee of the same company.");
 
         entity.LeaderId = leaderId;
 
