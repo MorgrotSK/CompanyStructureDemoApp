@@ -41,7 +41,8 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
 
         bool codeExists = await dbContext.Divisions.AnyAsync(d => d.CompanyId == companyId && d.Code == request.Code);
 
-        if (codeExists) return ServiceResult<DivisionResponse>.BadRequest("Division code already exists for the company.");
+        if (codeExists)
+            return ServiceResult<DivisionResponse>.BadRequest("Division code already exists for the company.");
 
         DivisionEntity divisionEntity = new()
         {
@@ -50,17 +51,18 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
             CompanyId = companyId
         };
 
-        dbContext.Divisions.Add(divisionEntity);
-        await dbContext.SaveChangesAsync();
-
         if (request.LeaderId is not null)
         {
-            var leaderResult = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionEntity.Id, request.LeaderId.Value);
+            var leaderResult = await organizationNodeService.ValidateLeaderAsync(divisionEntity, request.LeaderId.Value);
 
-            if (!leaderResult.Success) return ServiceResult<DivisionResponse>.Fail(leaderResult);
+            if (!leaderResult.Success)
+                return ServiceResult<DivisionResponse>.Fail(leaderResult);
 
-            divisionEntity = leaderResult.Data!;
+            divisionEntity.LeaderId = request.LeaderId.Value;
         }
+
+        dbContext.Divisions.Add(divisionEntity);
+        await dbContext.SaveChangesAsync();
 
         return ServiceResult<DivisionResponse>.Ok(divisionEntity.ToResponse());
     }

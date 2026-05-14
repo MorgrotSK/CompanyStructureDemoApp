@@ -51,6 +51,26 @@ public class OrganizationNodeService(AppDbContext dbContext)
 
         return ServiceResult<EmployeeResponse>.Ok(entity.Leader.ToResponse());
     }
+    
+    public async Task<ServiceResult> ValidateLeaderAsync<TEntity>(TEntity entity, int leaderId) where TEntity : OrganizationNodeEntity
+    {
+        EmployeeEntity? leader = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == leaderId);
+
+        if (leader == null)
+            return ServiceResult.NotFound("Employee not found.");
+
+        CompanyEntity? company = entity.GetCompany();
+
+        if (company == null)
+            return ServiceResult.BadRequest("Could not resolve company hierarchy.");
+
+        bool isCompanyEmployee = await dbContext.Employees.AnyAsync(e => e.Id == leaderId && e.CompanyId == company.Id);
+
+        if (!isCompanyEmployee)
+            return ServiceResult.BadRequest("Leader must be an employee of the same company.");
+
+        return ServiceResult.NoContent();
+    }
 
     public async Task<ServiceResult<TEntity>> SetLeaderAsync<TEntity>(DbSet<TEntity> entities, int entityId, int leaderId) where TEntity : OrganizationNodeEntity
     {
@@ -59,20 +79,10 @@ public class OrganizationNodeService(AppDbContext dbContext)
         if (entity == null)
             return ServiceResult<TEntity>.NotFound($"{typeof(TEntity).Name} not found.");
 
-        EmployeeEntity? leader = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == leaderId);
+        var leaderValidation = await ValidateLeaderAsync(entity, leaderId);
 
-        if (leader == null)
-            return ServiceResult<TEntity>.NotFound("Employee not found.");
-        
-        CompanyEntity? company = entity.GetCompany();
-
-        if (company == null)
-            return ServiceResult<TEntity>.BadRequest("Could not resolve company hierarchy.");
-
-        bool isCompanyEmployee = company.Employees.Any(e => e.Id == leaderId);
-
-        if (!isCompanyEmployee)
-            return ServiceResult<TEntity>.BadRequest("Leader must be an employee of the same company.");
+        if (!leaderValidation.Success)
+            return ServiceResult<TEntity>.Fail(leaderValidation);
 
         entity.LeaderId = leaderId;
 

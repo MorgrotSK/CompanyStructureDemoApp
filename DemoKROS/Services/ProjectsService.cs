@@ -54,22 +54,19 @@ public class ProjectsService(AppDbContext dbContext, OrganizationNodeService org
             Code = request.Code,
             DivisionId = divisionId
         };
-
-        dbContext.Projects.Add(projectEntity);
-        await dbContext.SaveChangesAsync();
-
+        
         if (request.LeaderId is not null)
         {
-            var leaderResult = await organizationNodeService.SetLeaderAsync(
-                dbContext.Projects,
-                projectEntity.Id,
-                request.LeaderId.Value);
+            var leaderResult = await organizationNodeService.ValidateLeaderAsync(projectEntity, request.LeaderId.Value);
 
             if (!leaderResult.Success)
                 return ServiceResult<ProjectResponse>.Fail(leaderResult);
 
-            projectEntity = leaderResult.Data!;
+            projectEntity.LeaderId = request.LeaderId.Value;
         }
+
+        dbContext.Projects.Add(projectEntity);
+        await dbContext.SaveChangesAsync();
 
         return ServiceResult<ProjectResponse>.Ok(projectEntity.ToResponse());
     }

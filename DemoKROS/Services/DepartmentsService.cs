@@ -40,22 +40,19 @@ public class DepartmentsService(AppDbContext dbContext, OrganizationNodeService 
             Code = request.Code,
             ProjectId = projectId
         };
-
-        dbContext.Departments.Add(departmentEntity);
-        await dbContext.SaveChangesAsync();
-
+        
         if (request.LeaderId is not null)
         {
-            var leaderResult = await organizationNodeService.SetLeaderAsync(
-                dbContext.Departments,
-                departmentEntity.Id,
-                request.LeaderId.Value);
+            var leaderResult = await organizationNodeService.ValidateLeaderAsync(departmentEntity, request.LeaderId.Value);
 
             if (!leaderResult.Success)
                 return ServiceResult<DepartmentResponse>.Fail(leaderResult);
 
-            departmentEntity = leaderResult.Data!;
+            departmentEntity.LeaderId = request.LeaderId.Value;
         }
+
+        dbContext.Departments.Add(departmentEntity);
+        await dbContext.SaveChangesAsync();
 
         return ServiceResult<DepartmentResponse>.Ok(departmentEntity.ToResponse());
     }
