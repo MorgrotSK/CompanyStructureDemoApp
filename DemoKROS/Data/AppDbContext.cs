@@ -28,7 +28,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DepartmentEntity>().HasIndex(d => new { d.ProjectId, d.Code }).IsUnique();
         
         ConfigureOrganizationNode<CompanyEntity>(modelBuilder);
-        ConfigureOrganizationNode<DivisionEntity>(modelBuilder);
+        ConfigureOrganizationNode<DivisionEntity>(modelBuilder);    
         ConfigureOrganizationNode<ProjectEntity>(modelBuilder);
         ConfigureOrganizationNode<DepartmentEntity>(modelBuilder);
     }

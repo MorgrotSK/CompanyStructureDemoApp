@@ -67,7 +67,7 @@ Scalar API documentation is available at:
 Example:
 
 ```text
-https://localhost:xxxx/scalar
+https://localhost:5277/scalar
 ```
 
 ## Notes
