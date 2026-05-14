@@ -3,6 +3,7 @@ using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Divisions;
 using DemoKROS.DTO.Employees;
 using DemoKROS.DTO.Projects;
+using DemoKROS.Extensions;
 using DemoKROS.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.GetByIdAsync(divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -39,7 +40,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.GetDivisionProjectsAsync(divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -52,7 +53,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await projectsService.CreateAsync(request, divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return CreatedAtRoute(ApiRoutes.RouteNames.GetProjectById, new { projectId = result.Data!.Id }, result.Data);
     }
@@ -65,7 +66,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.UpdateAsync(divisionId, request);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -77,7 +78,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.DeleteAsync(divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToEmptyActionResult(result);
 
         return NoContent();
     }
@@ -89,7 +90,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.GetLeaderAsync(divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -102,7 +103,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.SetLeaderAsync(divisionId, leaderId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -114,7 +115,7 @@ public class DivisionsController(DivisionsService divisionsService, ProjectsServ
     {
         var result = await divisionsService.RemoveLeaderAsync(divisionId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }

@@ -3,6 +3,7 @@ using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Company;
 using DemoKROS.DTO.Divisions;
 using DemoKROS.DTO.Employees;
+using DemoKROS.Extensions;
 using DemoKROS.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.GetByIdAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -39,7 +40,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.GetEmployeesAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -52,7 +53,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await employeesService.CreateAsync(request, companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return CreatedAtRoute(ApiRoutes.RouteNames.GetEmployeeById, new { employeeId = result.Data!.Id }, result.Data);
     }
@@ -64,7 +65,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.GetDivisionsAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -77,7 +78,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await divisionsService.CreateAsync(request, companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return CreatedAtRoute(ApiRoutes.RouteNames.GetDivisionById, new { divisionId = result.Data!.Id }, result.Data);
     }
@@ -90,7 +91,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.UpdateAsync(companyId, request);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -102,7 +103,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.CreateAsync(request);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return CreatedAtAction(nameof(GetById), new { companyId = result.Data!.Id }, result.Data);
     }
@@ -114,7 +115,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.DeleteAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToEmptyActionResult(result);
 
         return NoContent();
     }
@@ -126,7 +127,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.GetLeaderAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -139,7 +140,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.SetLeaderAsync(companyId, leaderId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -151,7 +152,7 @@ public class CompaniesController(CompaniesService companiesService, DivisionsSer
     {
         var result = await companiesService.RemoveLeaderAsync(companyId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }

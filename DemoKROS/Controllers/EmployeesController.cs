@@ -1,5 +1,6 @@
 ﻿using DemoKROS.Constants;
 using DemoKROS.DTO.Employees;
+using DemoKROS.Extensions;
 using DemoKROS.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,8 +25,7 @@ public class EmployeesController(EmployeesService employeesService) : Controller
     {
         var result = await employeesService.GetByIdAsync(employeeId);
 
-        if (!result.Success)
-            return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -38,8 +38,7 @@ public class EmployeesController(EmployeesService employeesService) : Controller
     {
         var result = await employeesService.UpdateAsync(employeeId, request);
 
-        if (!result.Success)
-            return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -52,8 +51,7 @@ public class EmployeesController(EmployeesService employeesService) : Controller
     {
         var result = await employeesService.DeleteAsync(employeeId);
 
-        if (!result.Success)
-            return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToEmptyActionResult(result);
 
         return NoContent();
     }

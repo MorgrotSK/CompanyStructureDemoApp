@@ -2,6 +2,7 @@
 using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Departments;
 using DemoKROS.DTO.Employees;
+using DemoKROS.Extensions;
 using DemoKROS.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +27,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.GetByIdAsync(departmentId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -39,7 +40,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.UpdateAsync(departmentId, request);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -51,7 +52,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.DeleteAsync(departmentId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToEmptyActionResult(result);
 
         return NoContent();
     }
@@ -63,7 +64,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.GetLeaderAsync(departmentId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -76,7 +77,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.SetLeaderAsync(departmentId, leaderId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -88,7 +89,7 @@ public class DepartmentsController(DepartmentsService departmentsService) : Cont
     {
         var result = await departmentsService.RemoveLeaderAsync(departmentId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }

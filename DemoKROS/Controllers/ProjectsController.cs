@@ -3,6 +3,7 @@ using DemoKROS.DTO.Common;
 using DemoKROS.DTO.Departments;
 using DemoKROS.DTO.Employees;
 using DemoKROS.DTO.Projects;
+using DemoKROS.Extensions;
 using DemoKROS.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.GetByIdAsync(projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -39,7 +40,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.GetProjectDepartmentsAsync(projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -52,7 +53,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await departmentsService.CreateAsync(request, projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return CreatedAtRoute(ApiRoutes.RouteNames.GetDepartmentById, new { departmentId = result.Data!.Id }, result.Data);
     }
@@ -65,7 +66,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.UpdateAsync(projectId, request);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -77,7 +78,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.DeleteAsync(projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToEmptyActionResult(result);
 
         return NoContent();
     }
@@ -89,7 +90,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.GetLeaderAsync(projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -102,7 +103,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.SetLeaderAsync(projectId, leaderId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
@@ -114,7 +115,7 @@ public class ProjectsController(ProjectsService projectsService, DepartmentsServ
     {
         var result = await projectsService.RemoveLeaderAsync(projectId);
 
-        if (!result.Success) return StatusCode(result.StatusCode, new { error = result.Error });
+        if (!result.Success) return this.ToActionResult(result);
 
         return Ok(result.Data);
     }
