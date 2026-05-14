@@ -59,9 +59,6 @@ public class OrganizationNodeService(AppDbContext dbContext)
         CompanyEntity company = entity.GetCompany() ?? throw new Exception("Could not resolve company hierarchy.");
 
         bool isCompanyEmployee = company.Employees.Any(e => e.Id == leaderId);
-        
-        Console.WriteLine($"Company test: {company.Name} {isCompanyEmployee} {leaderId} {company.Employees.Count()}");
-
 
         if (!isCompanyEmployee) throw new ValidationException("Leader must be an employee of the same company.");
 
