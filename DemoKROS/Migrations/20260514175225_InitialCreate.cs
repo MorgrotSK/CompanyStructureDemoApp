@@ -31,11 +31,11 @@ namespace DemoKROS.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    FirstName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CompanyId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -56,7 +56,6 @@ namespace DemoKROS.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CompanyId = table.Column<int>(type: "int", nullable: false),
-                    CompanyEntityId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Code = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     LeaderId = table.Column<int>(type: "int", nullable: true)
@@ -65,8 +64,8 @@ namespace DemoKROS.Migrations
                 {
                     table.PrimaryKey("PK_Divisions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Divisions_Companies_CompanyEntityId",
-                        column: x => x.CompanyEntityId,
+                        name: "FK_Divisions_Companies_CompanyId",
+                        column: x => x.CompanyId,
                         principalTable: "Companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -152,11 +151,6 @@ namespace DemoKROS.Migrations
                 table: "Departments",
                 columns: new[] { "ProjectId", "Code" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Divisions_CompanyEntityId",
-                table: "Divisions",
-                column: "CompanyEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Divisions_CompanyId_Code",

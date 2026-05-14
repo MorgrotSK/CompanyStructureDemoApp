@@ -9,14 +9,24 @@ public class EmployeeEntity
 {
     [Key]
     public int Id { get; set; }
+    
+    [MaxLength(30)] 
     public string Title { get; set; } = "";
+    
     [Required]
+    [MaxLength(50)]
     public string FirstName { get; set; } = "";
+    
     [Required]
+    [MaxLength(50)]
     public string LastName { get; set; } = "";
+    
     [Required]
+    [MaxLength(30)]
     public string Phone { get; set; } = "";
+    
     [Required]
+    [MaxLength(100)]
     public string Email { get; set; } = "";
     
     [ForeignKey(nameof(CompanyEntity))]

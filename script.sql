@@ -19,11 +19,11 @@ CREATE TABLE [Companies] (
 
 CREATE TABLE [Employees] (
     [Id] int NOT NULL IDENTITY,
-    [Title] nvarchar(max) NOT NULL,
-    [FirstName] nvarchar(max) NOT NULL,
-    [LastName] nvarchar(max) NOT NULL,
-    [Phone] nvarchar(max) NOT NULL,
-    [Email] nvarchar(max) NOT NULL,
+    [Title] nvarchar(30) NOT NULL,
+    [FirstName] nvarchar(50) NOT NULL,
+    [LastName] nvarchar(50) NOT NULL,
+    [Phone] nvarchar(30) NOT NULL,
+    [Email] nvarchar(100) NOT NULL,
     [CompanyId] int NOT NULL,
     CONSTRAINT [PK_Employees] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_Employees_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([Id]) ON DELETE CASCADE
@@ -32,12 +32,11 @@ CREATE TABLE [Employees] (
 CREATE TABLE [Divisions] (
     [Id] int NOT NULL IDENTITY,
     [CompanyId] int NOT NULL,
-    [CompanyEntityId] int NOT NULL,
     [Name] nvarchar(100) NOT NULL,
     [Code] nvarchar(20) NOT NULL,
     [LeaderId] int NULL,
     CONSTRAINT [PK_Divisions] PRIMARY KEY ([Id]),
-    CONSTRAINT [FK_Divisions_Companies_CompanyEntityId] FOREIGN KEY ([CompanyEntityId]) REFERENCES [Companies] ([Id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_Divisions_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([Id]) ON DELETE CASCADE,
     CONSTRAINT [FK_Divisions_Employees_LeaderId] FOREIGN KEY ([LeaderId]) REFERENCES [Employees] ([Id])
 );
 
@@ -71,8 +70,6 @@ CREATE INDEX [IX_Departments_LeaderId] ON [Departments] ([LeaderId]);
 
 CREATE UNIQUE INDEX [IX_Departments_ProjectId_Code] ON [Departments] ([ProjectId], [Code]);
 
-CREATE INDEX [IX_Divisions_CompanyEntityId] ON [Divisions] ([CompanyEntityId]);
-
 CREATE UNIQUE INDEX [IX_Divisions_CompanyId_Code] ON [Divisions] ([CompanyId], [Code]);
 
 CREATE INDEX [IX_Divisions_LeaderId] ON [Divisions] ([LeaderId]);
@@ -86,24 +83,7 @@ CREATE INDEX [IX_Projects_LeaderId] ON [Projects] ([LeaderId]);
 ALTER TABLE [Companies] ADD CONSTRAINT [FK_Companies_Employees_LeaderId] FOREIGN KEY ([LeaderId]) REFERENCES [Employees] ([Id]);
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-VALUES (N'20260513134815_InitialCreate', N'9.0.15');
-
-ALTER TABLE [Divisions] DROP CONSTRAINT [FK_Divisions_Companies_CompanyEntityId];
-
-DROP INDEX [IX_Divisions_CompanyEntityId] ON [Divisions];
-
-DECLARE @var sysname;
-SELECT @var = [d].[name]
-FROM [sys].[default_constraints] [d]
-INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
-WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Divisions]') AND [c].[name] = N'CompanyEntityId');
-IF @var IS NOT NULL EXEC(N'ALTER TABLE [Divisions] DROP CONSTRAINT [' + @var + '];');
-ALTER TABLE [Divisions] DROP COLUMN [CompanyEntityId];
-
-ALTER TABLE [Divisions] ADD CONSTRAINT [FK_Divisions_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([Id]) ON DELETE CASCADE;
-
-INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-VALUES (N'20260513230636_FixDivisionCompanyRelation', N'9.0.15');
+VALUES (N'20260514175225_InitialCreate', N'9.0.15');
 
 COMMIT;
 GO

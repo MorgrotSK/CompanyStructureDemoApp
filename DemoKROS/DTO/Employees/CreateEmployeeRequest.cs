@@ -6,7 +6,8 @@ namespace DemoKROS.DTO.Employees;
 public class CreateEmployeeRequest
 {
 
-    [MaxLength(30)] public string? Title { get; set; } = "";
+    [MaxLength(30)] 
+    public string? Title { get; set; } = "";
 
     [Required]
     [StringLength(50, MinimumLength = 2)]
