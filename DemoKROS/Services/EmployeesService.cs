@@ -72,6 +72,6 @@ public class EmployeesService(AppDbContext dbContext)
         dbContext.Employees.Remove(employee);
         await dbContext.SaveChangesAsync();
 
-        return ServiceResult.Ok();
+        return ServiceResult.NoContent();
     }
 }

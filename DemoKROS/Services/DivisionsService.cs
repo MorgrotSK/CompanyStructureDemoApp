@@ -57,8 +57,7 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
         {
             var leaderResult = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionEntity.Id, request.LeaderId.Value);
 
-            if (!leaderResult.Success)
-                return new ServiceResult<DivisionResponse> { Success = false, Error = leaderResult.Error, StatusCode = leaderResult.StatusCode };
+            if (!leaderResult.Success) return ServiceResult<DivisionResponse>.Fail(leaderResult);
 
             divisionEntity = leaderResult.Data!;
         }
@@ -75,7 +74,7 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
         dbContext.Divisions.Remove(division);
         await dbContext.SaveChangesAsync();
 
-        return ServiceResult.Ok();
+        return ServiceResult.NoContent();
     }
     
     public async Task<ServiceResult<DivisionResponse>> UpdateAsync(int divisionId, UpdateOrganizationNodeRequest request)
@@ -86,8 +85,7 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
 
         var result = await organizationNodeService.UpdateAsync(dbContext.Divisions, dbContext.Divisions.Where(d => d.CompanyId == division.CompanyId), divisionId, request);
 
-        if (!result.Success)
-            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+        if (!result.Success) return ServiceResult<DivisionResponse>.Fail(result);
 
         return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
     }
@@ -101,8 +99,7 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
     {
         var result = await organizationNodeService.SetLeaderAsync(dbContext.Divisions, divisionId, leaderId);
 
-        if (!result.Success)
-            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+        if (!result.Success) return ServiceResult<DivisionResponse>.Fail(result);
 
         return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
     }
@@ -111,8 +108,7 @@ public class DivisionsService(AppDbContext dbContext, OrganizationNodeService or
     {
         var result = await organizationNodeService.RemoveLeaderAsync(dbContext.Divisions, divisionId);
 
-        if (!result.Success)
-            return new ServiceResult<DivisionResponse> { Success = false, Error = result.Error, StatusCode = result.StatusCode };
+        if (!result.Success) return ServiceResult<DivisionResponse>.Fail(result);
 
         return ServiceResult<DivisionResponse>.Ok(result.Data!.ToResponse());
     }

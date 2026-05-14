@@ -27,4 +27,18 @@ public class ServiceResult<T>
         Error = error,
         StatusCode = StatusCodes.Status400BadRequest
     };
+    
+    public static ServiceResult<T> Fail(ServiceResult result) => new()
+    {
+        Success = false,
+        Error = result.Error,
+        StatusCode = result.StatusCode
+    };
+    
+    public static ServiceResult<T> Fail<TSource>(ServiceResult<TSource> result) => new()
+    {
+        Success = false,
+        Error = result.Error,
+        StatusCode = result.StatusCode
+    };
 }
